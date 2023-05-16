@@ -5,8 +5,8 @@ from django.http import JsonResponse
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status
-from ..models import Post
-from ..serializers import PostSerializer
+from api.models.post import Post
+from api.serializers.post import PostSerializer
 
 
 @api_view(['GET'])
@@ -17,7 +17,7 @@ def posts(request):
 
 
 @api_view(['GET', 'POST', 'PATCH', 'DELETE'])
-def post(request, id=None):
+def post(request, post_id=None):
     if request.method == 'POST':
         serializer = PostSerializer(data=request.data)
         if serializer.is_valid():
@@ -25,7 +25,7 @@ def post(request, id=None):
             return Response(serializer.data, status=status.HTTP_201_CREATED)
     else:
         try:
-            post = Post.objects.get(pk=id)
+            post = Post.objects.get(pk=post_id)
         except Post.DoesNotExist:
             return Response(status=status.HTTP_404_NOT_FOUND)
 

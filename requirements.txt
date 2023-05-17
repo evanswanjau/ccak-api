@@ -4,6 +4,7 @@ astroid
 autopep8
 black
 click
+corsheader
 dill
 Django
 djangorestframework

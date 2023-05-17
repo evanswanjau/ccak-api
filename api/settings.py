@@ -25,7 +25,7 @@ SECRET_KEY = 'django-insecure-=iw6^1gji#zgy7jeqar5pkjyvtptqgr9wpme+f^2f5qklrl!55
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'https://ccak-api.up.railway.app']
+ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'ccak-api.up.railway.app']
 
 
 # Application definition

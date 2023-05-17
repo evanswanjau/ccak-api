@@ -16,12 +16,21 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path
 from api.views import posts
+from api.views import members
+from api.views import socialposts
 from api.views import imagekit
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('posts', posts.posts),
     path('post', posts.post),
-    path('post/<int:id>', posts.post),
+    path('post/<int:post_id>', posts.post),
+    path('members', members.members),
+    path('member', members.member),
+    path('member/<int:member_id>', members.member),
+    path('socialposts', socialposts.socialposts),
+    path('mysocialposts', socialposts.socialpost),
+    path('socialpost', socialposts.socialpost),
+    path('socialpost/<int:social_post_id>', socialposts.socialpost),
     path('imagekit/auth', imagekit.auth)
 ]

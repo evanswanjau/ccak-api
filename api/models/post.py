@@ -9,7 +9,7 @@ class Post(models.Model):
     """
     title = models.CharField(max_length=300, blank=True)
     excerpt = models.CharField(max_length=500, blank=True)
-    content = models.CharField(max_length=100000, blank=True)
+    content = models.TextField(blank=True)
     published = models.DateTimeField(default=timezone.now)
     category = models.CharField(max_length=150)
     image = models.CharField(max_length=300, blank=True)

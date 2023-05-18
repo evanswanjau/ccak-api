@@ -25,6 +25,7 @@ urlpatterns = [
     path('posts', posts.posts),
     path('post', posts.post),
     path('post/<int:post_id>', posts.post),
+    path('post/search/<str:keyword>/<str:category>/<int:limit>', posts.search_posts),
     path('members', members.members),
     path('member', members.member),
     path('member/<int:member_id>', members.member),

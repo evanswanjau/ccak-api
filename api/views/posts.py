@@ -11,8 +11,8 @@ from api.serializers.post import PostSerializer
 
 @api_view(['GET'])
 def posts(request):
-    posts = Post.objects.all()
-    serializer = PostSerializer(posts, many=True)
+    data = Post.objects.order_by("created_at").all()
+    serializer = PostSerializer(data, many=True)
     return JsonResponse(serializer.data, safe=False)
 
 
@@ -25,23 +25,32 @@ def post(request, post_id=None):
             return Response(serializer.data, status=status.HTTP_201_CREATED)
     else:
         try:
-            post = Post.objects.get(pk=post_id)
+            data = Post.objects.get(pk=post_id)
         except Post.DoesNotExist:
             return Response(status=status.HTTP_404_NOT_FOUND)
 
         if request.method == 'GET':
-            serializer = PostSerializer(post)
+            serializer = PostSerializer(data)
             return Response(serializer.data)
         elif request.method == 'PATCH':
-            serializer = PostSerializer(post, data=request.data)
+            serializer = PostSerializer(data, data=request.data)
 
             if serializer.is_valid():
                 serializer.save()
                 return Response(serializer.data)
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         elif request.method == 'DELETE':
-            serializer = PostSerializer(post)
-            post.delete()
+            serializer = PostSerializer(data)
+            data.delete()
             return Response(serializer.data)
 
 
+@api_view(['GET'])
+def search_posts(request, keyword, category, limit):
+    if keyword == "all":
+        data = Post.objects.filter(category=category)[:limit]
+    else:
+        data = Post.objects.filter(title__contains=keyword, category=category)
+
+    serializer = PostSerializer(data, many=True)
+    return JsonResponse(serializer.data, safe=False)

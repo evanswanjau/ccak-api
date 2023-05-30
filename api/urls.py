@@ -19,13 +19,15 @@ from api.views import posts
 from api.views import members
 from api.views import socialposts
 from api.views import imagekit
+from api.views import search
+
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('posts', posts.posts),
     path('post', posts.post),
     path('post/<int:post_id>', posts.post),
-    path('post/search/<str:keyword>/<str:category>/<int:limit>', posts.search_posts),
+    path('search', search.search),
     path('members', members.members),
     path('member', members.member),
     path('member/<int:member_id>', members.member),

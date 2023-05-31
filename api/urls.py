@@ -16,11 +16,10 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path
 from api.views import posts
-from api.views import members
 from api.views import socialposts
 from api.views import imagekit
 from api.views import search
-
+from api.views.members import MemberView
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -28,12 +27,12 @@ urlpatterns = [
     path('post', posts.post),
     path('post/<int:post_id>', posts.post),
     path('search', search.search),
-    path('members', members.members),
-    path('member', members.member),
-    path('member/<int:member_id>', members.member),
     path('socialposts', socialposts.socialposts),
     path('mysocialposts', socialposts.socialpost),
     path('socialpost', socialposts.socialpost),
     path('socialpost/<int:social_post_id>', socialposts.socialpost),
-    path('imagekit/auth', imagekit.auth)
+    path('imagekit/auth', imagekit.auth),
+    path('member', MemberView.as_view(), name='create-member'),
+    path('members', MemberView.as_view(), name='get-all-members'),
+    path('member/<int:member_id>', MemberView.as_view(), name='get-member'),
 ]

@@ -21,6 +21,7 @@ from api.views import search
 from api.views import auth
 from api.views.members import MemberView
 from api.views.posts import PostView
+from api.views.subscriber import SubscriberView
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -37,4 +38,7 @@ urlpatterns = [
     path('post', PostView.as_view(), name='create-post'),
     path('posts', PostView.as_view(), name='get-all-posts'),
     path('post/<int:post_id>', PostView.as_view(), name='get-post'),
+    path('subscriber', SubscriberView.as_view(), name='create-subscriber'),
+    path('subscribers', SubscriberView.as_view(), name='get-all-subscribers'),
+    path('subscriber/<int:subscriber_id>', SubscriberView.as_view(), name='delete-subscriber'),
 ]

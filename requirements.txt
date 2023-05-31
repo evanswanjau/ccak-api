@@ -2,6 +2,7 @@ asgiref==3.6.0
 astroid==2.15.4
 attrs==23.1.0
 autopep8==2.0.2
+bcrypt==4.0.1
 black==23.3.0
 cachetools==5.3.0
 certifi==2023.5.7
@@ -11,6 +12,7 @@ dill==0.3.6
 Django==4.2.1
 django-cors-headers==4.0.0
 djangorestframework==3.14.0
+djangorestframework-simplejwt==5.2.2
 frozendict==2.3.8
 google-auth==2.18.0
 idna==3.4
@@ -28,6 +30,7 @@ protobuf==4.23.0
 pyasn1==0.5.0
 pyasn1-modules==0.3.0
 pycodestyle==2.10.0
+PyJWT==1.7.1
 pylint==2.17.4
 python-dotenv==1.0.0
 pytz==2023.3

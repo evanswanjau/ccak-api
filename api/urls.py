@@ -19,6 +19,7 @@ from api.views import posts
 from api.views import socialposts
 from api.views import imagekit
 from api.views import search
+from api.views import auth
 from api.views.members import MemberView
 
 urlpatterns = [
@@ -35,4 +36,5 @@ urlpatterns = [
     path('member', MemberView.as_view(), name='create-member'),
     path('members', MemberView.as_view(), name='get-all-members'),
     path('member/<int:member_id>', MemberView.as_view(), name='get-member'),
+    path('auth/member/login', auth.member_login),
 ]

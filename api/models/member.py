@@ -28,6 +28,7 @@ class Member(models.Model):
     subscription_category = models.CharField(max_length=300, blank=True)
     subscription_expiry = models.DateField(default=datetime.date.today)
     status = models.CharField(max_length=150, default="active")
+    agree_to_terms = models.BooleanField(default=False)
     step = models.CharField(max_length=150, blank=True)
     created_by = models.IntegerField(default=0)
     created_at = models.DateTimeField(default=timezone.now)

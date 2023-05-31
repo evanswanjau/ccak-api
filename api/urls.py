@@ -15,18 +15,15 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path
-from api.views import posts
 from api.views import socialposts
 from api.views import imagekit
 from api.views import search
 from api.views import auth
 from api.views.members import MemberView
+from api.views.posts import PostView
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('posts', posts.posts),
-    path('post', posts.post),
-    path('post/<int:post_id>', posts.post),
     path('search', search.search),
     path('socialposts', socialposts.socialposts),
     path('mysocialposts', socialposts.socialpost),
@@ -37,4 +34,7 @@ urlpatterns = [
     path('members', MemberView.as_view(), name='get-all-members'),
     path('member/<int:member_id>', MemberView.as_view(), name='get-member'),
     path('auth/member/login', auth.member_login),
+    path('post', PostView.as_view(), name='create-post'),
+    path('posts', PostView.as_view(), name='get-all-posts'),
+    path('post/<int:post_id>', PostView.as_view(), name='get-post'),
 ]

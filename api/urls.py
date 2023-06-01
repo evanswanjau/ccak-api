@@ -25,7 +25,6 @@ from api.views.subscriber import SubscriberView
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('search', search.search),
     path('socialposts', socialposts.socialposts),
     path('mysocialposts', socialposts.socialpost),
     path('socialpost', socialposts.socialpost),
@@ -41,4 +40,6 @@ urlpatterns = [
     path('subscriber', SubscriberView.as_view(), name='create-subscriber'),
     path('subscribers', SubscriberView.as_view(), name='get-all-subscribers'),
     path('subscriber/<int:subscriber_id>', SubscriberView.as_view(), name='delete-subscriber'),
+    path('search/posts', search.search_posts, name='search-posts'),
+    path('search/members', search.search_members, name='search-members'),
 ]

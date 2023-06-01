@@ -5,6 +5,7 @@
 __pycache__
 media
 
+*.sqlite3
 # Backup files # 
 *.bak 
 
@@ -34,6 +35,8 @@ media
 # Gradle
 .idea/**/gradle.xml
 .idea/**/libraries
+
+.idea/ccak-api.iml
 
 # File-based project format
 *.iws

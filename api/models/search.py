@@ -10,6 +10,7 @@ class Search(models.Model):
     keyword = models.CharField(max_length=300, blank=True)
     table = models.CharField(max_length=300, blank=True)
     category = models.CharField(max_length=150, blank=True)
+    technology = models.CharField(max_length=150, blank=True)
     project_status = models.CharField(max_length=150, blank=True)
     page = models.IntegerField(default=0)
     limit = models.IntegerField(default=0)

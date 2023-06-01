@@ -18,8 +18,8 @@ class MemberSerializer(serializers.ModelSerializer):
                   'registration_status', 'subscription_status', 'subscription_category', 'subscription_expiry',
                   'status', 'step', 'agree_to_terms', 'created_by', 'created_at', 'last_updated']
 
-    @staticmethod
-    def validate_email(email):
+    def validate_email(self, email):
+        print(self.instance)
         """
         Validate the email field.
 
@@ -36,13 +36,16 @@ class MemberSerializer(serializers.ModelSerializer):
         if not re.match(r'^[\w\.-]+@[\w\.-]+\.\w+$', email):
             raise serializers.ValidationError("Invalid email address.")
 
-        # Check if email already exists
-        if Member.objects.filter(email=email).exists():
+        # check if email already exists while creating a member
+        if self.instance is None and Member.objects.filter(email=email).exists():
+            raise serializers.ValidationError('Email already exists.')
+
+        # check if email already exists while updating a member
+        if self.instance and Member.objects.filter(email=email).exclude(id=self.instance.id).exists():
             raise serializers.ValidationError('Email already exists.')
         return email
 
-    @staticmethod
-    def validate_phone_number(phone_number):
+    def validate_phone_number(self, phone_number):
         """
         Validate the phone_number field.
 
@@ -59,9 +62,13 @@ class MemberSerializer(serializers.ModelSerializer):
         if not re.match(r'^\+?\d{1,3}[-.\s]?\(?\d{1,3}\)?[-.\s]?\d{1,4}[-.\s]?\d{1,4}[-.\s]?\d{1,9}$', phone_number):
             raise serializers.ValidationError("Invalid phone number.")
 
-        # Check if phone number already exists
-        if Member.objects.filter(phone_number=phone_number).exists():
-            raise serializers.ValidationError('Phone number already exists.')
+        # check if email already exists while creating a member
+        if self.instance is None and Member.objects.filter(phone_number=phone_number).exists():
+            raise serializers.ValidationError('Email already exists.')
+
+        # check if email already exists while updating a member
+        if self.instance and Member.objects.filter(phone_number=phone_number).exclude(id=self.instance.id).exists():
+            raise serializers.ValidationError('Email already exists.')
         return phone_number
 
     def update(self, instance, validated_data):

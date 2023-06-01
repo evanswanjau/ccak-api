@@ -13,9 +13,13 @@ load_dotenv()
 @api_view(['GET'])
 def auth(request):
     """
-    This method acquires imagekit config files
-    Acquires imagekit authorization 
-    Returns security data
+    Acquires ImageKit configuration files and authorization parameters.
+
+    This method retrieves the necessary configuration files and authentication parameters
+    from ImageKit to enable secure interactions with the ImageKit service.
+
+    Returns:
+        JsonResponse: JSON response containing the ImageKit authentication parameters.
     """
     imagekit = ImageKit(
         private_key=os.getenv('IMAGEKIT_PRIVATE_KEY'),

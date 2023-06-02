@@ -1,3 +1,5 @@
+import os
+
 from django.contrib.auth.hashers import make_password
 from rest_framework.response import Response
 from rest_framework import status
@@ -6,6 +8,9 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from api.models.member import Member
 from api.serializers.member import MemberSerializer
 from api.utils.email import send_email
+from dotenv import load_dotenv
+
+load_dotenv()
 
 
 class MemberView(APIView):
@@ -93,7 +98,7 @@ class MemberView(APIView):
             token = self.generate_token(member)
 
             # Send verification email to the member
-            self.send_verification_email(member, token)
+            self.send_verification_email(member, token.get('access'))
 
             return Response({"token": token}, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -176,6 +181,6 @@ class MemberView(APIView):
             dict: The response from the send_email function.
         """
         subject = "Welcome to The Clean Cooking Association Kenya"
-        context = {"recipient_name": member.first_name, "token": token}
+        context = {"recipient_name": member.first_name, "token": token, "url": os.getenv('FRONTEND_URL')}
 
         return send_email(member.email, subject, context, "welcome_email.html")

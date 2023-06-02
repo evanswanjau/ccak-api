@@ -166,15 +166,16 @@ class MemberView(APIView):
     @staticmethod
     def send_verification_email(member, token):
         """
-        Send a verification email to the member.
+        Sends a verification email to the member.
 
-        Parameters:
-        - recipient_email: The email address of the recipient.
-        - verification_link: The link for email verification.
+        Args:
+            member (Member): The member object.
+            token (str): The verification token for email verification.
 
+        Returns:
+            dict: The response from the send_email function.
         """
-        email_subject = "Welcome to The Clean Cooking Alliance Kenya"
-        email_message = f"Dear {member.first_name},\n\nThank you for registering on YourApp. " \
-                        f"Your account has been created successfully. Please click the following " \
-                        f"link to verify your email:"
-        return send_email(member.email, email_subject, email_message)
+        subject = "Welcome to The Clean Cooking Association Kenya"
+        context = {"recipient_name": member.first_name, "token": token}
+
+        return send_email(member.email, subject, context, "welcome_email.html")

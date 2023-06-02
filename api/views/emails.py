@@ -31,7 +31,8 @@ def send_custom_mail(request):
         return Response({'error': 'Missing email data'}, status=400)
 
     try:
-        send_email(recipient, recipient_name, subject, message)
+        context = {"recipient_name": recipient_name, "message": message}
+        send_email(recipient, subject, context)
         return Response({'message': 'Email sent successfully'}, status=200)
     except Exception as e:
         return Response({'error': 'Unable to send email: ' + str(e)}, status=400)

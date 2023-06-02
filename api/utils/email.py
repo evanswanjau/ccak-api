@@ -4,28 +4,23 @@ from email.utils import formataddr
 from django.template.loader import render_to_string
 
 
-def send_email(recipient, recipient_name, subject, message):
+def send_email(recipient, subject, context, template="default_email.html"):
     """
     Sends an email to the specified recipient.
 
-    Parameters:
-    - recipient (str): The email address of the recipient.
-    - recipient_name (str): The name of the recipient.
-    - subject (str): The subject of the email.
-    - message (str): The content of the email.
+    Args:
+        recipient (str): The email address of the recipient.
+        subject (str): The subject of the email.
+        context (dict): The context data to render the email template.
+        template (str): The name of the email template to use. Default is "default_email.html".
 
     Returns:
-    - dict: The response from the send_mail function.
+        dict: The response from the send_mail function.
 
     Raises:
-    - Exception: If there is an error while sending the email.
+        Exception: If there is an error while sending the email.
     """
-    context = {
-        'recipient_name': recipient_name,
-        'message': message
-    }
-
-    email_content = render_to_string('emails/default_email.html', context)
+    email_content = render_to_string(f'emails/{template}', context)
 
     from_email = formataddr((settings.EMAIL_HOST_NAME, settings.EMAIL_HOST_USER))
 

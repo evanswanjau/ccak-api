@@ -31,6 +31,8 @@ urlpatterns = [
     path('socialpost', socialposts.socialpost),
     path('socialpost/<int:social_post_id>', socialposts.socialpost),
     path('imagekit/auth', imagekit.auth),
+    path('imagekit/upload', imagekit.upload_file),
+    path('imagekit/delete', imagekit.delete_file),
     path('send/email', emails.send_custom_mail),
     path('member', MemberView.as_view(), name='create-member'),
     path('members', MemberView.as_view(), name='get-all-members'),

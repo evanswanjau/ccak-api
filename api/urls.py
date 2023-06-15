@@ -23,6 +23,8 @@ from api.views import auth
 from api.views.members import MemberView
 from api.views.posts import PostView
 from api.views.subscriber import SubscriberView
+from api.views.invoices import InvoiceView
+from api.views import kopokopo
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -46,4 +48,10 @@ urlpatterns = [
     path('subscriber/<int:subscriber_id>', SubscriberView.as_view(), name='delete-subscriber'),
     path('search/posts', search.search_posts, name='search-posts'),
     path('search/members', search.search_members, name='search-members'),
+    path('kopokopo/payment/receive', kopokopo.receive_payments),
+    path('kopokopo/payment/process', kopokopo.process_payment),
+    path('kopokopo/payment/query', kopokopo.query_payment),
+    path('invoice', InvoiceView.as_view(), name='create-invoice'),
+    path('invoices', InvoiceView.as_view(), name='get-all-invoices'),
+    path('invoice/<int:invoice_id>', InvoiceView.as_view(), name='get-invoice'),
 ]

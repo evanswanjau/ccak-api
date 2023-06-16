@@ -55,7 +55,7 @@ def receive_payments(request):
     # initiate payment request
     mpesa_payment_location = receive_payments_service.create_payment_request({
         "access_token": access_token,
-        "callback_url": "https://ef6f-154-70-18-86.ngrok-free.app/kopokopo/payment/process",
+        "callback_url": os.getenv('BACKEND_URL') + "/kopokopo/payment/process",
         "first_name": request.data.get("first_name"),
         "last_name": request.data.get("last_name"),
         "email": request.data.get("email"),
@@ -135,7 +135,7 @@ def buygoods_transaction_received_webhook(request):
     request_payload = {
         "access_token": access_token,
         "event_type": 'buygoods_transaction_received',
-        "webhook_endpoint": 'https://ef6f-154-70-18-86.ngrok-free.app/kopokopo/callback/buygoods',
+        "webhook_endpoint": os.getenv('BACKEND_URL') + '/kopokopo/callback/buygoods',
         "scope": 'till',
         "scope_reference": '112233'
     }

@@ -74,7 +74,7 @@ class SubscriberView(APIView):
         Returns:
             dict: The response from the send_email function.
         """
-        subject = "You have been subscribed"
+        subject = "You Have Been Subscribed"
         context = {"recipient_name": "subscriber"}
 
         send_email(email, subject, context, "subscriber_email.html")

@@ -3,6 +3,7 @@ from rest_framework import status
 from rest_framework.response import Response
 from api.models.subscriber import Subscriber
 from api.serializers.subscriber import SubscriberSerializer
+from api.utils.email import send_email
 
 
 class SubscriberView(APIView):
@@ -39,6 +40,10 @@ class SubscriberView(APIView):
         serializer = SubscriberSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save()
+
+            # Send welcome email to subscriber
+            self.send_welcome_email(request.data.get('email'))
+
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -57,3 +62,19 @@ class SubscriberView(APIView):
             return Response(status=status.HTTP_204_NO_CONTENT)
         except Subscriber.DoesNotExist:
             return Response(status=status.HTTP_404_NOT_FOUND)
+
+    @staticmethod
+    def send_welcome_email(email):
+        """
+        Sends a welcome subscriber email to the subscriber.
+
+        Args:
+            email (Member): The subscriber email.
+
+        Returns:
+            dict: The response from the send_email function.
+        """
+        subject = "You have been subscribed"
+        context = {"recipient_name": "subscriber"}
+
+        send_email(email, subject, context, "subscriber_email.html")

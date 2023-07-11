@@ -1,3 +1,4 @@
+from datetime import datetime
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.decorators import api_view
@@ -42,20 +43,20 @@ def search_posts(request):
     """
     serializer = SearchSerializer(data=request.data)
     if serializer.is_valid():
-        keyword = request.data.get('keyword')
         category = request.data.get('category')
-        table = request.data.get('table')
-        project_status = request.data.get('project_status')
 
         # get search query arguments
-        query = get_query(keyword, category, table, project_status=project_status)
+        query = get_posts_query(request.data)
+        print(query)
 
         # get search offset range and limit
         offset = get_offset(request.data['page'], request.data['limit'])
 
-        # initiate search
-        data = Post.objects.filter(**query).order_by('published' if category == "events" else 'event_date')[
-               offset["start"]:offset["end"]]
+        if category in ["events"]:
+            data = Post.objects.filter(**query, event_date__gt=datetime.today()).order_by("event_date")[
+                   offset["start"]:offset["end"]]
+        else:
+            data = Post.objects.filter(**query).order_by("-published")[offset["start"]:offset["end"]]
 
         post_serializer = PostSerializer(data, many=True)
         return Response(post_serializer.data)
@@ -103,7 +104,8 @@ def search_members(request):
         technology = request.data.get('technology')
 
         # get search query arguments
-        query = get_query(keyword, category, table, technology=technology)
+        if request.data.get('table') == 'members':
+            query = get_posts_query(request.data)
 
         # get search offset range and limit
         offset = get_offset(request.data['page'], request.data['limit'])
@@ -116,41 +118,25 @@ def search_members(request):
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-def get_query(keyword, category, table, project_status=None, technology=None):
-    """
-    Get the search query based on the provided parameters.
+def get_posts_query(data):
+    query = {};
 
-    Args:
-        keyword (str): The keyword to search for in post titles.
-        category (str): The category of posts to search in.
-        table (str): The table is used to help define the query.
-        project_status (str): The status of project posts to filter by.
-        technology (str): The member technology to filter by.
+    if data['keyword']:
+        query["title__contains"] = data['keyword']
 
-    Returns:
-        dict: A dictionary representing the search query.
-    """
-    query = {
-        "category": category
-    }
+    if data['category']:
+        query["category"] = data['category']
 
-    if table == "posts":
-        query.update({
-            "access": "public",
-            "status": "published"
-        })
+    if data['category'] == "projects" and data['project_status']:
+        query["project_status"] = data['project_status']
 
-    if keyword:
-        query["title__contains"] = keyword
+    if data['access']:
+        query["access"] = data['access']
+        if data['access'] == 'public':
+            query['published__lt'] = datetime.today()
 
-    if category == "projects" and project_status:
-        query["project_status"] = project_status
-
-    if technology:
-        query["technology"] = technology
-
-    if not category:
-        del query["category"]
+    if data['status']:
+        query["status"] = data['status']
 
     return query
 

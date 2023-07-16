@@ -1,9 +1,15 @@
+import os
+
 from django.contrib.auth.hashers import make_password
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.views import APIView
 from api.models.administrator import Administrator
 from api.serializers.administrator import AdministratorSerializer
+from api.utils.email import send_email
+from dotenv import load_dotenv
+
+load_dotenv()
 
 
 class AdministratorView(APIView):
@@ -84,7 +90,10 @@ class AdministratorView(APIView):
             password = serializer.validated_data.get('password')
             serializer.validated_data['password'] = make_password(password)
 
-            serializer.save()
+            administrator = serializer.save()
+
+            self.send_welcome_email(administrator, password)
+
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -134,3 +143,21 @@ class AdministratorView(APIView):
 
         administrator.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+    @staticmethod
+    def send_welcome_email(administrator, password):
+        """
+        Sends a welcome email to the administrator.
+
+        Args:
+            administrator (Administrator): The administrator object.
+            password (password): The administrator password.
+        Returns:
+            dict: The response from the send_email function.
+        """
+        subject = "Welcome to The CCAK CMS Portal"
+        context = {"recipient_name": administrator.first_name, "email": administrator.email,
+                   "password": password, "url": os.getenv('PORTAL_URL')}
+        response = send_email(administrator.email, subject, context, "admin_welcome_email.html")
+        print("response", response)
+        return response

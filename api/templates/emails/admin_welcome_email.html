@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clean Cooking Association Kenya Email</title>
+</head>
+<body>
+<div>
+    <p>Dear {{ recipient_name|capfirst }},</p>
+    <p>Welcome to the team of CMS Portal administrators!</p>
+    <p>We are pleased to inform you that your administrator privileges for the CMS Portal have been granted.To access
+        the CMS Portal, please use the following login credentials:</p>
+    <p>URL: <a href='{{ url }}/login'>{{ url }}/login</a></p>
+    <p>Email: {{ email }}</p>
+    <p>Password: {{ password }}</p>
+    <p>For security reasons, we recommend changing your password after your first login. You will find the
+        option to change your password in the "Profile" section of the CMS Portal.</p>
+    <br>
+    <p>Best regards,<br>
+        Clean Cooking Alliance Kenya</p>
+</div>
+</body>
+</html>

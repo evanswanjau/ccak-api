@@ -25,6 +25,11 @@ class SubscriberView(APIView):
         Returns: A list of all subscribers on the mailing list.
         """
         subscribers = Subscriber.objects.all()
+
+        # Modify the email field for partial obscuring
+        for subscriber in subscribers:
+            subscriber.email = self.obscure_email(subscriber.email)
+
         serializer = SubscriberSerializer(subscribers, many=True)
         return Response(serializer.data)
 
@@ -78,3 +83,16 @@ class SubscriberView(APIView):
         context = {"recipient_name": "subscriber"}
 
         send_email(email, subject, context, "subscriber_email.html")
+
+    @staticmethod
+    def obscure_email(email):
+        username, domain = email.split('@')
+        partial_username = username[:3]
+
+        obscured_username = partial_username + 'x' * (len(username) - 3)
+        partial_domain = domain[-2:]
+
+        obscured_domain = 'x' * (len(domain) - 2) + partial_domain
+        partial = obscured_username + '@' + obscured_domain
+
+        return partial

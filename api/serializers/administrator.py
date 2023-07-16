@@ -13,7 +13,7 @@ class AdministratorSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Administrator
-        fields = ['id', 'first_name', 'last_name', 'email', 'password', 'status', 'created_by', 'created_at',
+        fields = ['id', 'first_name', 'last_name', 'email', 'password', 'role', 'status', 'created_by', 'created_at',
                   'last_updated']
 
     def validate_email(self, email):

@@ -13,6 +13,7 @@ class Administrator(models.Model):
     last_name = models.CharField(max_length=300)
     email = models.EmailField()
     password = models.CharField(max_length=300)
+    role = models.CharField(max_length=300, default="admin")
     status = models.CharField(max_length=150, default="active")
     created_by = models.IntegerField(default=0)
     created_at = models.DateTimeField(default=timezone.now)

@@ -158,6 +158,4 @@ class AdministratorView(APIView):
         subject = "Welcome to The CCAK CMS Portal"
         context = {"recipient_name": administrator.first_name, "email": administrator.email,
                    "password": password, "url": os.getenv('PORTAL_URL')}
-        response = send_email(administrator.email, subject, context, "admin_welcome_email.html")
-        print("response", response)
-        return response
+        return send_email(administrator.email, subject, context, "admin_welcome_email.html")

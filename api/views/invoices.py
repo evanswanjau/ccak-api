@@ -4,6 +4,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.views import APIView
 from api.models.invoice import Invoice
+from api.models.payment import Payment
 from api.serializers.invoice import InvoiceSerializer
 
 
@@ -50,6 +51,8 @@ class InvoiceView(APIView):
         """
         try:
             invoice = Invoice.objects.get(pk=invoice_id)
+            invoice = self.payment_details(self, invoice)
+
             serializer = InvoiceSerializer(invoice)
             return Response(serializer.data)
         except Invoice.DoesNotExist:
@@ -150,3 +153,31 @@ class InvoiceView(APIView):
         invoice_count = Invoice.objects.filter(created_at__date=today).count()
         invoice_number = f"INV-{today.strftime('%Y%m%d')}-{invoice_count + 1:03d}"
         return invoice_number
+
+    @staticmethod
+    def payment_details(self, invoice):
+        """
+        Calculates the payment details for an invoice.
+
+        Args:
+            invoice (Invoice): The invoice object for which to calculate the payment details.
+
+        Returns:
+            Invoice: The updated invoice object with total amount, paid amount, and balance calculated.
+        """
+        total_amount = 0
+        paid_amount = 0
+
+        for item in invoice.items:
+            total_amount += item['quantity'] * item['unit_price']
+
+        invoice.total_amount = total_amount
+
+        payments = Payment.objects.filter(invoice_number=invoice.invoice_number)
+        for payment in payments:
+            paid_amount += payment.amount
+
+        invoice.paid_amount = paid_amount
+        invoice.balance = total_amount - paid_amount
+
+        return invoice

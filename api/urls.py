@@ -24,6 +24,7 @@ from api.views.members import MemberView
 from api.views.posts import PostView
 from api.views.subscriber import SubscriberView
 from api.views.invoices import InvoiceView
+from api.views.payments import PaymentView
 from api.views.administrators import AdministratorView
 from api.views import kopokopo
 
@@ -60,6 +61,9 @@ urlpatterns = [
     path('invoice', InvoiceView.as_view(), name='create-invoice'),
     path('invoices', InvoiceView.as_view(), name='get-all-invoices'),
     path('invoice/<int:invoice_id>', InvoiceView.as_view(), name='get-invoice'),
+    path('payment', PaymentView.as_view(), name='create-payment'),
+    path('payments', PaymentView.as_view(), name='get-all-payments'),
+    path('payment/<int:payment_id>', PaymentView.as_view(), name='get-payment'),
     path('administrator', AdministratorView.as_view(), name='create-administrator'),
     path('administrators', AdministratorView.as_view(), name='get-all-administrators'),
     path('administrator/<int:administrator_id>', AdministratorView.as_view(), name='get-administrator'),

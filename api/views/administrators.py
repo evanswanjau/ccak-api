@@ -91,8 +91,7 @@ class AdministratorView(APIView):
             serializer.validated_data['password'] = make_password(password)
 
             administrator = serializer.save()
-
-            self.send_welcome_email(administrator, password)
+            self.send_welcome_email(self, administrator, password)
 
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -145,7 +144,7 @@ class AdministratorView(APIView):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     @staticmethod
-    def send_welcome_email(administrator, password):
+    def send_welcome_email(self, administrator, password):
         """
         Sends a welcome email to the administrator.
 

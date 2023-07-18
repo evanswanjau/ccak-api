@@ -4,7 +4,9 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.views import APIView
 from api.models.payment import Payment
+from api.models.invoice import Invoice
 from api.serializers.payment import PaymentSerializer
+from api.serializers.invoice import InvoiceSerializer
 
 
 class PaymentView(APIView):
@@ -82,6 +84,11 @@ class PaymentView(APIView):
         serializer = PaymentSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save()
+
+            # update invoice status
+            if request.data.get("invoice_number"):
+                self.update_invoice_status(self, request.data.get("invoice_number"))
+
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -107,6 +114,7 @@ class PaymentView(APIView):
         serializer = PaymentSerializer(payment, data=request.data)
         if serializer.is_valid():
             serializer.save()
+            self.update_invoice_status(self, payment.invoice_number)
             return Response(serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -126,8 +134,33 @@ class PaymentView(APIView):
         """
         try:
             payment = Payment.objects.get(pk=payment_id)
+            self.update_invoice_status(self, payment.invoice_number)
         except Payment.DoesNotExist:
             return Response({"error": "Payment not found."}, status=status.HTTP_404_NOT_FOUND)
 
         payment.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+    @staticmethod
+    def update_invoice_status(self, invoice_number):
+        total_amount = 0
+        paid_amount = 0
+        status = "unpaid"
+
+        # Calculate total amount
+        invoice = Invoice.objects.get(invoice_number=invoice_number)
+        for item in invoice.items:
+            total_amount += item["quantity"] * item["unit_price"]
+
+        # Calculate paid amount
+        payments = Payment.objects.filter(invoice_number=invoice.invoice_number)
+        for payment in payments:
+            paid_amount += int(payment.amount)
+
+        if total_amount == paid_amount or total_amount < paid_amount:
+            status = "paid"
+
+        invoice.status = status
+        invoice.save()
+        serializer = InvoiceSerializer(invoice)
+        return serializer.data

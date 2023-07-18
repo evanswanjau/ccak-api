@@ -66,6 +66,9 @@ class InvoiceView(APIView):
         - Serialized data for all invoices.
         """
         invoices = Invoice.objects.all()
+        for invoice in invoices:
+            invoice = self.payment_details(self, invoice)
+
         serializer = InvoiceSerializer(invoices, many=True)
         return Response(serializer.data)
 

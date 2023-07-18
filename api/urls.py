@@ -51,6 +51,8 @@ urlpatterns = [
     path('subscriber/<int:subscriber_id>', SubscriberView.as_view(), name='delete-subscriber'),
     path('search/posts', search.search_posts, name='search-posts'),
     path('search/members', search.search_members, name='search-members'),
+    path('search/invoices', search.search_invoices, name='search-invoices'),
+    path('search/payments', search.search_payments, name='search-payments'),
     path('kopokopo/payment/receive', kopokopo.receive_payments),
     path('kopokopo/payment/process', kopokopo.process_payment),
     path('kopokopo/payment/query', kopokopo.query_payment),

@@ -101,7 +101,7 @@ class MemberView(APIView):
             if request.data.get("data_from") == "portal":
                 self.send_welcome_email(member, password)
 
-            if request.data.get("data_from") == "portal":
+            if request.data.get("data_from") == "website":
                 self.send_verification_email(member, token.get('access'))
 
             return Response({"token": token}, status=status.HTTP_201_CREATED)

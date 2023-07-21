@@ -97,8 +97,12 @@ class MemberView(APIView):
             # generate token
             token = self.generate_token(member)
 
-            # Send verification email to the member
-            self.send_verification_email(member, token.get('access'))
+            # Send email to the member
+            if request.data.get("data_from") == "portal":
+                self.send_welcome_email(member, password)
+
+            if request.data.get("data_from") == "portal":
+                self.send_verification_email(member, token.get('access'))
 
             return Response({"token": token}, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -184,3 +188,21 @@ class MemberView(APIView):
         context = {"recipient_name": member.first_name, "token": token, "url": os.getenv('FRONTEND_URL')}
 
         return send_email(member.email, subject, context, "welcome_email.html")
+
+    @staticmethod
+    def send_welcome_email(member, password):
+        """
+        Sends a welcome email to the member.
+
+        Args:
+            member (Member): The member object.
+            password (str): The unsalted password
+
+        Returns:
+            dict: The response from the send_email function.
+        """
+        subject = "Welcome to The Clean Cooking Association Kenya. Your Account is Ready!"
+        context = {"recipient_name": member.first_name, "email": member.email, "password": password,
+                   "url": os.getenv('FRONTEND_URL')}
+
+        return send_email(member.email, subject, context, "member_welcome_email.html")

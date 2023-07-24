@@ -77,11 +77,7 @@ def delete_file(request):
         Exception: If an error occurs during the deletion process.
     """
     try:
-        search_query = f'name="{request.data.get("name")}"'
-
-        list_files = imagekit.list_files(options=ListAndSearchFileRequestOptions(search_query=search_query))
-
-        response = imagekit.delete_file(list_files.list[0].file_id)
+        response = imagekit.delete_file(file_id=request.data.get("file_id"))
 
         if response.response_metadata.http_status_code == 204:
             return Response({'message': 'Image deleted successfully'})

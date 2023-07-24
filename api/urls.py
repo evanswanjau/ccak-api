@@ -27,8 +27,10 @@ from api.views.invoices import InvoiceView
 from api.views.payments import PaymentView
 from api.views.administrators import AdministratorView
 from api.views import kopokopo
+from api.views import home
 
 urlpatterns = [
+    path('', home.home),
     path('admin/', admin.site.urls),
     path('socialposts', socialposts.socialposts),
     path('mysocialposts', socialposts.socialpost),

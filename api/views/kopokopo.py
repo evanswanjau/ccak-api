@@ -165,6 +165,8 @@ def buygoods_transaction_received_callback(request):
     serializer = KopokopoSerializer(data=request.data)
     if serializer.is_valid():
         serializer.save()
+
+        save_payment(request.data)
         return Response({"message": "Payment received successfully"}, status=status.HTTP_201_CREATED)
     print(serializer.errors)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -201,3 +203,37 @@ def get_single_kopokopo_payment(request, kopokopo_id):
         return Response(serializer.data)
     except Kopokopo.DoesNotExist:
         return Response({"error": "Kopokopo payment not found."}, status=status.HTTP_404_NOT_FOUND)
+
+
+def save_payment(payment):
+    print(payment)
+    payment['transaction_id'] = payment['id']
+    payment['method'] = 'mpesa'
+    payment['timestamp'] = payment['created_at']
+    print(payment)
+    #
+    # serializer = KopokopoSerializer(data=request.data)
+    # if serializer.is_valid():
+    #     serializer.save()
+    #
+    #     save_payment(request.data)
+    #     return Response({"message": "Payment received successfully"}, status=status.HTTP_201_CREATED)
+    # print(serializer.errors)
+    # return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    # TODO: 1. Get payment details
+    # TODO: 2. Save payment
+    pass
+
+
+def update_invoice_status():
+    # TODO 1. Get invoice amount
+    # TODO 2. Calculate amounts
+    # TODO 3. Update invoice status
+    # TODO 4. Choose whether to activate user or not
+    pass
+
+
+def activate_member():
+    # TODO 1. Get member details
+    # TODO 2. Update details with the right amount
+    pass

@@ -9,6 +9,7 @@ class Member(models.Model):
     A schema for a member.
     This schema defines the properties of an individual member.
     """
+
     first_name = models.CharField(max_length=300)
     last_name = models.CharField(max_length=300)
     email = models.EmailField()
@@ -23,13 +24,15 @@ class Member(models.Model):
     location = models.CharField(max_length=300, blank=True)
     website_link = models.CharField(max_length=300, blank=True)
     logo = models.CharField(max_length=300, blank=True)
+    bookmarks = models.JSONField(default=dict)
     registration_status = models.CharField(max_length=150, default="unregistered")
     subscription_status = models.CharField(max_length=150, default="inactive")
     subscription_category = models.CharField(max_length=300, blank=True)
     subscription_expiry = models.DateField(default=datetime.date.today)
     status = models.CharField(max_length=150, default="active")
     agree_to_terms = models.BooleanField(default=False)
-    step = models.CharField(max_length=150, blank=True)
+    email_activation = models.BooleanField(default=False)
+    step = models.CharField(max_length=150, default="company")
     created_by = models.IntegerField(default=0)
     created_at = models.DateTimeField(default=timezone.now)
     last_updated = models.DateTimeField(auto_now=True)

@@ -15,46 +15,54 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path
-from api.views import socialposts
 from api.views import imagekit
 from api.views import emails
-from api.views import search
 from api.views import auth
-from api.views.members import MemberView
-from api.views.posts import PostView
-from api.views.subscriber import SubscriberView
-from api.views.invoices import InvoiceView
-from api.views.payments import PaymentView
-from api.views.administrators import AdministratorView
+from api.views import posts
+from api.views import socialposts
+from api.views import comments
+from api.views import members
+from api.views import invoices
+from api.views import payments
+from api.views import subscribers
+from api.views import administrators
 from api.views import kopokopo
 from api.views import home
+
+from rest_framework_simplejwt.views import TokenObtainPairView
 
 urlpatterns = [
     path('', home.home),
     path('admin/', admin.site.urls),
-    path('socialposts', socialposts.socialposts),
-    path('mysocialposts', socialposts.socialpost),
-    path('socialpost', socialposts.socialpost),
-    path('socialpost/<int:social_post_id>', socialposts.socialpost),
+    path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('imagekit/auth', imagekit.auth),
     path('imagekit/upload', imagekit.upload_file),
     path('imagekit/delete', imagekit.delete_file),
     path('send/email', emails.send_custom_mail),
-    path('member', MemberView.as_view(), name='create-member'),
-    path('members', MemberView.as_view(), name='get-all-members'),
-    path('member/<int:member_id>', MemberView.as_view(), name='get-member'),
     path('auth/member/login', auth.member_login),
     path('auth/administrator/login', auth.administrator_login),
-    path('post', PostView.as_view(), name='create-post'),
-    path('posts', PostView.as_view(), name='get-all-posts'),
-    path('post/<int:post_id>', PostView.as_view(), name='get-post'),
-    path('subscriber', SubscriberView.as_view(), name='create-subscriber'),
-    path('subscribers', SubscriberView.as_view(), name='get-all-subscribers'),
-    path('subscriber/<int:subscriber_id>', SubscriberView.as_view(), name='delete-subscriber'),
-    path('search/posts', search.search_posts, name='search-posts'),
-    path('search/members', search.search_members, name='search-members'),
-    path('search/invoices', search.search_invoices, name='search-invoices'),
-    path('search/payments', search.search_payments, name='search-payments'),
+    path('post/<int:post_id>', posts.get_post, name='get-post'),
+    path('posts', posts.get_posts, name='get-posts'),
+    path('post', posts.create_post, name='create-post'),
+    path('post/update/<int:post_id>', posts.update_post, name='update-post'),
+    path('post/delete/<int:post_id>', posts.delete_post, name='delete-post'),
+    path('posts/search', posts.search_posts, name='search-posts'),
+    path('socialpost/<int:socialpost_id>', socialposts.get_socialpost, name='get-socialpost'),
+    path('socialposts', socialposts.get_socialposts, name='get-socialposts'),
+    path('socialpost', socialposts.create_socialpost, name='create-socialpost'),
+    path('socialpost/update/<int:socialpost_id>', socialposts.update_socialpost, name='update-socialpost'),
+    path('socialpost/delete/<int:socialpost_id>', socialposts.delete_socialpost, name='delete-socialpost'),
+    path('socialposts/member/<int:member_id>', socialposts.member_socialposts, name='member-socialposts'),
+    path('comment', comments.create_comment, name='create-comment'),
+    path('comment/update/<int:comment_id>', comments.update_comment, name='update-comment'),
+    path('comment/delete/<int:comment_id>', comments.delete_comment, name='delete-comment'),
+    path('comments/socialpost/<int:socialpost_id>', comments.socialpost_comments, name='socialpost-comments'),
+    path('member/<int:member_id>', members.get_member, name='get-member'),
+    path('members', members.get_members, name='get-members'),
+    path('member', members.create_member, name='create-member'),
+    path('member/update/<int:member_id>', members.update_member, name='update-member'),
+    path('member/delete/<int:member_id>', members.delete_member, name='delete-member'),
+    path('members/search', members.search_members, name='search-member'),
     path('kopokopo/payment/receive', kopokopo.receive_payments),
     path('kopokopo/payment/process', kopokopo.process_payment),
     path('kopokopo/payment/query', kopokopo.query_payment),
@@ -62,13 +70,24 @@ urlpatterns = [
     path('kopokopo/callback/buygoods', kopokopo.buygoods_transaction_received_callback),
     path('kopokopo/payments', kopokopo.get_all_kopokopo_payments),
     path('kopokopo/payment/<int:kopokopo_id>', kopokopo.get_single_kopokopo_payment),
-    path('invoice', InvoiceView.as_view(), name='create-invoice'),
-    path('invoices', InvoiceView.as_view(), name='get-all-invoices'),
-    path('invoice/<int:invoice_id>', InvoiceView.as_view(), name='get-invoice'),
-    path('payment', PaymentView.as_view(), name='create-payment'),
-    path('payments', PaymentView.as_view(), name='get-all-payments'),
-    path('payment/<int:payment_id>', PaymentView.as_view(), name='get-payment'),
-    path('administrator', AdministratorView.as_view(), name='create-administrator'),
-    path('administrators', AdministratorView.as_view(), name='get-all-administrators'),
-    path('administrator/<int:administrator_id>', AdministratorView.as_view(), name='get-administrator'),
+    path('invoice/<int:invoice_id>', invoices.get_invoice, name='get-invoice'),
+    path('invoices', invoices.get_invoices, name='get-invoices'),
+    path('invoice', invoices.create_invoice, name='create-invoice'),
+    path('invoice/update/<int:invoice_id>', invoices.update_invoice, name='update-invoice'),
+    path('invoice/delete/<int:invoice_id>', invoices.delete_invoice, name='delete-invoice'),
+    path('invoices/search', invoices.search_invoices, name='search-invoices'),
+    path('payment/<int:payment_id>', payments.get_payment, name='get-payment'),
+    path('payments', payments.get_payments, name='get-payments'),
+    path('payment', payments.create_payment, name='create-payment'),
+    path('payment/update/<int:payment_id>', payments.update_payment, name='update-payment'),
+    path('payment/delete/<int:payment_id>', payments.delete_payment, name='delete-payment'),
+    path('payments/search', payments.search_payments, name='search-payments'),
+    path('subscribers', subscribers.get_subscribers, name='get-subscribers'),
+    path('subscriber', subscribers.create_subscriber, name='create-subscriber'),
+    path('subscriber/delete/<int:subscriber_id>', subscribers.delete_subscriber, name='delete-subscriber'),
+    path('administrators', administrators.get_administrators, name='get-administrators'),
+    path('administrator', administrators.create_administrator, name='create-administrator'),
+    path('administrator/<int:administrator_id>', administrators.get_administrator, name='get-administrator'),
+    path('administrator/update/<int:administrator_id>', administrators.update_administrator, name='update-administrator'),
+    path('administrator/delete/<int:administrator_id>', administrators.delete_administrator, name='delete-administrator'),
 ]

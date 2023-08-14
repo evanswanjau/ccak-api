@@ -3,7 +3,7 @@ import os
 from django.contrib.auth.hashers import make_password
 from rest_framework.response import Response
 from rest_framework import status
-from rest_framework.views import APIView
+from rest_framework.decorators import api_view
 from api.models.administrator import Administrator
 from api.serializers.administrator import AdministratorSerializer
 from api.utils.email import send_email
@@ -12,149 +12,137 @@ from dotenv import load_dotenv
 load_dotenv()
 
 
-class AdministratorView(APIView):
+@api_view(['GET'])
+def get_administrator(request, administrator_id):
     """
-    API endpoint for managing administrators.
+    Retrieve details of an administrator by their administrator ID.
 
-    Methods:
-    - GET: Retrieve all administrators or a specific administrator by their administrator ID.
-    - POST: Create a new administrator.
-    - PUT: Update an existing administrator by their administrator ID.
-    - DELETE: Delete an existing administrator by their administrator ID.
+    Parameters:
+    - administrator_id: The ID of the administrator to retrieve.
+
+    Returns:
+    - If the administrator exists, returns the serialized administrator data.
+    - If the administrator does not exist, returns an error response.
     """
+    try:
+        if getattr(request.user, "role", None) != "super-admin":
+            return Response({"message": "Administrator is not authorized"}, status=403)
 
-    def get(self, request, administrator_id=None):
-        """
-        Retrieve all administrators or a specific administrator by their administrator ID.
-
-        Parameters:
-        - request: The HTTP request object.
-        - administrator_id: The ID of the administrator to retrieve (optional).
-
-        Returns:
-        - If administrator_id is provided, returns the serialized administrator data.
-        - If administrator_id is None, returns serialized data for all administrators.
-
-        HTTP Methods: GET
-        """
-        if administrator_id is not None:
-            return self.get_single_administrator(administrator_id)
-        else:
-            return self.get_all_administrators()
-
-    def get_single_administrator(self, administrator_id):
-        """
-        Retrieve details of an administrator by their administrator ID.
-
-        Parameters:
-        - administrator_id: The ID of the administrator to retrieve.
-
-        Returns:
-        - If the administrator exists, returns the serialized administrator data.
-        - If the administrator does not exist, returns an error response.
-        """
-        try:
-            administrator = Administrator.objects.get(pk=administrator_id)
-            serializer = AdministratorSerializer(administrator)
-            return Response(serializer.data)
-        except Administrator.DoesNotExist:
-            return Response({"error": "Administrator not found."}, status=status.HTTP_404_NOT_FOUND)
-
-    def get_all_administrators(self):
-        """
-        Retrieve all administrators.
-
-        Returns:
-        - Serialized data for all administrators.
-        """
-        administrators = Administrator.objects.all()
-        serializer = AdministratorSerializer(administrators, many=True)
+        administrator = Administrator.objects.get(pk=administrator_id)
+        serializer = AdministratorSerializer(administrator)
         return Response(serializer.data)
+    except Administrator.DoesNotExist:
+        return Response({"error": "Administrator not found."}, status=status.HTTP_404_NOT_FOUND)
 
-    def post(self, request):
-        """
-        Create a new administrator.
 
-        Parameters:
-        - request: The HTTP request object.
+@api_view(['GET'])
+def get_administrators(request):
+    """
+    Retrieve all administrators.
 
-        Returns:
-        - If the administrator is created successfully, returns the generated token.
-        - If the administrator data is invalid, returns an error response.
+    Returns:
+    - Serialized data for all administrators.
+    """
+    if getattr(request.user, "role", None) != "super-admin":
+        return Response({"message": "Administrator is not authorized"}, status=403)
 
-        HTTP Methods: POST
-        """
-        serializer = AdministratorSerializer(data=request.data)
-        if serializer.is_valid():
-            # Salt and hash the password
-            password = serializer.validated_data.get('password')
-            serializer.validated_data['password'] = make_password(password)
+    administrators = Administrator.objects.all()
+    serializer = AdministratorSerializer(administrators, many=True)
+    return Response(serializer.data)
 
-            administrator = serializer.save()
-            self.send_welcome_email(self, administrator, password)
 
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+@api_view(['POST'])
+def create_administrator(request):
+    """
+    Create a new administrator.
 
-    def patch(self, request, administrator_id):
-        """
-        Update an existing administrator by their administrator ID.
+    Parameters:
+    - request: The HTTP request object.
 
-        Parameters:
-        - request: The HTTP request object.
-        - administrator_id: The ID of the administrator to update.
+    Returns:
+    - If the administrator is created successfully, returns the generated token.
+    - If the administrator data is invalid, returns an error response.
+    """
+    if getattr(request.user, "role", None) != "super-admin":
+        return Response({"message": "Administrator is not authorized"}, status=403)
 
-        Returns:
-        - If the administrator exists and the data is valid, returns the updated administrator data.
-        - If the administrator does not exist or the data is invalid, returns an error response.
+    serializer = AdministratorSerializer(data=request.data)
+    if serializer.is_valid():
+        # Salt and hash the password
+        password = serializer.validated_data.get('password')
+        serializer.validated_data['password'] = make_password(password)
 
-        HTTP Methods: PUT
-        """
-        try:
-            administrator = Administrator.objects.get(pk=administrator_id)
-        except Administrator.DoesNotExist:
-            return Response({"error": "Administrator not found."}, status=status.HTTP_404_NOT_FOUND)
+        administrator = serializer.save()
+        send_welcome_email(administrator, password)
 
-        serializer = AdministratorSerializer(administrator, data=request.data, partial=True)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    def delete(self, request, administrator_id):
-        """
-        Delete an existing administrator by their administrator ID.
 
-        Parameters:
-        - request: The HTTP request object.
-        - administrator_id: The ID of the administrator to delete.
+@api_view(['POST'])
+def update_administrator(request, administrator_id):
+    """
+    Update an existing administrator by their administrator ID.
 
-        Returns:
-        - If the administrator exists, deletes the administrator and returns a success response.
-        - If the administrator does not exist, returns an error response.
+    Parameters:
+    - request: The HTTP request object.
+    - administrator_id: The ID of the administrator to update.
 
-        HTTP Methods: DELETE
-        """
-        try:
-            administrator = Administrator.objects.get(pk=administrator_id)
-        except Administrator.DoesNotExist:
-            return Response({"error": "Administrator not found."}, status=status.HTTP_404_NOT_FOUND)
+    Returns:
+    - If the administrator exists and the data is valid, returns the updated administrator data.
+    - If the administrator does not exist or the data is invalid, returns an error response.
+    """
+    try:
+        if getattr(request.user, "role", None) != "super-admin":
+            return Response({"message": "Administrator is not authorized"}, status=403)
 
-        administrator.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
+        administrator = Administrator.objects.get(pk=administrator_id)
+    except Administrator.DoesNotExist:
+        return Response({"error": "Administrator not found."}, status=status.HTTP_404_NOT_FOUND)
 
-    @staticmethod
-    def send_welcome_email(self, administrator, password):
-        """
-        Sends a welcome email to the administrator.
+    serializer = AdministratorSerializer(administrator, data=request.data, partial=True)
+    if serializer.is_valid():
+        serializer.save()
+        return Response(serializer.data)
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-        Args:
-            administrator (Administrator): The administrator object.
-            password (password): The administrator password.
-        Returns:
-            dict: The response from the send_email function.
-        """
-        subject = "Welcome to The CCAK CMS Portal"
-        context = {"recipient_name": administrator.first_name, "email": administrator.email,
-                   "password": password, "url": os.getenv('PORTAL_URL')}
-        return send_email(administrator.email, subject, context, "admin_welcome_email.html")
+
+@api_view(['POST'])
+def delete_administrator(request, administrator_id):
+    """
+    Delete an existing administrator by their administrator ID.
+
+    Parameters:
+    - request: The HTTP request object.
+    - administrator_id: The ID of the administrator to delete.
+
+    Returns:
+    - If the administrator exists, deletes the administrator and returns a success response.
+    - If the administrator does not exist, returns an error response.
+    """
+    try:
+        if getattr(request.user, "role", None) != "super-admin":
+            return Response({"message": "Administrator is not authorized"}, status=403)
+
+        administrator = Administrator.objects.get(pk=administrator_id)
+    except Administrator.DoesNotExist:
+        return Response({"error": "Administrator not found."}, status=status.HTTP_404_NOT_FOUND)
+
+    administrator.delete()
+    return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+def send_welcome_email(administrator, password):
+    """
+    Sends a welcome email to the administrator.
+
+    Args:
+        administrator (Administrator): The administrator object.
+        password (password): The administrator password.
+    Returns:
+        dict: The response from the send_email function.
+    """
+    subject = "Welcome to The CCAK CMS Portal"
+    context = {"recipient_name": administrator.first_name, "email": administrator.email,
+               "password": password, "url": os.getenv('PORTAL_URL')}
+    return send_email(administrator.email, subject, context, "admin_welcome_email.html")

@@ -12,7 +12,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 
-@api_view(['GET'])
+@api_view(["GET"])
 def get_administrator(request, administrator_id):
     """
     Retrieve details of an administrator by their administrator ID.
@@ -32,10 +32,12 @@ def get_administrator(request, administrator_id):
         serializer = AdministratorSerializer(administrator)
         return Response(serializer.data)
     except Administrator.DoesNotExist:
-        return Response({"error": "Administrator not found."}, status=status.HTTP_404_NOT_FOUND)
+        return Response(
+            {"error": "Administrator not found."}, status=status.HTTP_404_NOT_FOUND
+        )
 
 
-@api_view(['GET'])
+@api_view(["GET"])
 def get_administrators(request):
     """
     Retrieve all administrators.
@@ -51,7 +53,7 @@ def get_administrators(request):
     return Response(serializer.data)
 
 
-@api_view(['POST'])
+@api_view(["POST"])
 def create_administrator(request):
     """
     Create a new administrator.
@@ -69,8 +71,8 @@ def create_administrator(request):
     serializer = AdministratorSerializer(data=request.data)
     if serializer.is_valid():
         # Salt and hash the password
-        password = serializer.validated_data.get('password')
-        serializer.validated_data['password'] = make_password(password)
+        password = serializer.validated_data.get("password")
+        serializer.validated_data["password"] = make_password(password)
 
         administrator = serializer.save()
         send_welcome_email(administrator, password)
@@ -79,7 +81,7 @@ def create_administrator(request):
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-@api_view(['POST'])
+@api_view(["POST"])
 def update_administrator(request, administrator_id):
     """
     Update an existing administrator by their administrator ID.
@@ -98,7 +100,9 @@ def update_administrator(request, administrator_id):
 
         administrator = Administrator.objects.get(pk=administrator_id)
     except Administrator.DoesNotExist:
-        return Response({"error": "Administrator not found."}, status=status.HTTP_404_NOT_FOUND)
+        return Response(
+            {"error": "Administrator not found."}, status=status.HTTP_404_NOT_FOUND
+        )
 
     serializer = AdministratorSerializer(administrator, data=request.data, partial=True)
     if serializer.is_valid():
@@ -107,7 +111,7 @@ def update_administrator(request, administrator_id):
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-@api_view(['POST'])
+@api_view(["POST"])
 def delete_administrator(request, administrator_id):
     """
     Delete an existing administrator by their administrator ID.
@@ -126,7 +130,9 @@ def delete_administrator(request, administrator_id):
 
         administrator = Administrator.objects.get(pk=administrator_id)
     except Administrator.DoesNotExist:
-        return Response({"error": "Administrator not found."}, status=status.HTTP_404_NOT_FOUND)
+        return Response(
+            {"error": "Administrator not found."}, status=status.HTTP_404_NOT_FOUND
+        )
 
     administrator.delete()
     return Response(status=status.HTTP_204_NO_CONTENT)
@@ -143,6 +149,10 @@ def send_welcome_email(administrator, password):
         dict: The response from the send_email function.
     """
     subject = "Welcome to The CCAK CMS Portal"
-    context = {"recipient_name": administrator.first_name, "email": administrator.email,
-               "password": password, "url": os.getenv('PORTAL_URL')}
+    context = {
+        "recipient_name": administrator.first_name,
+        "email": administrator.email,
+        "password": password,
+        "url": os.getenv("PORTAL_URL"),
+    }
     return send_email(administrator.email, subject, context, "admin_welcome_email.html")

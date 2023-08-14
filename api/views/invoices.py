@@ -1,186 +1,236 @@
-import datetime
-
 from rest_framework.response import Response
 from rest_framework import status
-from rest_framework.views import APIView
+from rest_framework.decorators import api_view
 from api.models.invoice import Invoice
 from api.models.payment import Payment
 from api.serializers.invoice import InvoiceSerializer
+import datetime
 
 
-class InvoiceView(APIView):
+@api_view(['GET'])
+def get_invoice(request, invoice_id):
     """
-    API endpoint for managing invoices.
+    Retrieve details of a specific invoice by its ID.
 
-    Methods:
-    - GET: Retrieve all invoices or a specific invoice by its ID.
-    - POST: Create a new invoice.
-    - PUT: Update an existing invoice by its ID.
-    - DELETE: Delete an existing invoice by its ID.
+    Parameters:
+    - request: The HTTP request object.
+    - invoice_id: The ID of the invoice to retrieve.
+
+    Returns:
+    - If the invoice exists, returns the serialized invoice data.
+    - If the invoice does not exist, returns an error response.
+
+    HTTP Methods: GET
     """
-
-    def get(self, request, invoice_id=None):
-        """
-        Retrieve all invoices or a specific invoice by its ID.
-
-        Parameters:
-        - request: The HTTP request object.
-        - invoice_id: The ID of the invoice to retrieve (optional).
-
-        Returns:
-        - If invoice_id is provided, returns the serialized invoice data.
-        - If invoice_id is None, returns serialized data for all invoices.
-
-        HTTP Methods: GET
-        """
-        if invoice_id is not None:
-            return self.get_single_invoice(invoice_id)
-        else:
-            return self.get_all_invoices()
-
-    def get_single_invoice(self, invoice_id):
-        """
-        Retrieve details of an invoice by its ID.
-
-        Parameters:
-        - invoice_id: The ID of the invoice to retrieve.
-
-        Returns:
-        - If the invoice exists, returns the serialized invoice data.
-        - If the invoice does not exist, returns an error response.
-        """
-        try:
-            invoice = Invoice.objects.get(pk=invoice_id)
-            invoice = self.payment_details(self, invoice)
-
-            serializer = InvoiceSerializer(invoice)
-            return Response(serializer.data)
-        except Invoice.DoesNotExist:
-            return Response({"error": "Invoice not found."}, status=status.HTTP_404_NOT_FOUND)
-
-    def get_all_invoices(self):
-        """
-        Retrieve all invoices.
-
-        Returns:
-        - Serialized data for all invoices.
-        """
-        invoices = Invoice.objects.all()
-        for invoice in invoices:
-            invoice = self.payment_details(self, invoice)
-
-        serializer = InvoiceSerializer(invoices, many=True)
+    try:
+        invoice = Invoice.objects.get(pk=invoice_id)
+        invoice = payment_details(invoice)
+        serializer = InvoiceSerializer(invoice)
         return Response(serializer.data)
+    except Invoice.DoesNotExist:
+        return Response({"error": "Invoice not found."}, status=status.HTTP_404_NOT_FOUND)
 
-    def post(self, request):
-        """
-        Create a new invoice.
 
-        Parameters:
-        - request: The HTTP request object.
+@api_view(['GET'])
+def get_invoices(request):
+    """
+    Retrieve all invoices.
 
-        Returns:
-        - If the invoice is created successfully, returns the serialized invoice data.
-        - If the invoice data is invalid, returns an error response.
+    Parameters:
+    - request: The HTTP request object.
 
-        HTTP Methods: POST
-        """
-        invoice_number = self.generate_invoice_number(self)
-        request.data['invoice_number'] = invoice_number
+    Returns:
+    - Serialized data for all invoices.
 
-        serializer = InvoiceSerializer(data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    HTTP Methods: GET
+    """
+    invoices = Invoice.objects.all()
+    for invoice in invoices:
+        invoice = payment_details(invoice)
+    serializer = InvoiceSerializer(invoices, many=True)
+    return Response(serializer.data)
 
-    def patch(self, request, invoice_id):
-        """
-        Update an existing invoice by its ID.
 
-        Parameters:
-        - request: The HTTP request object.
-        - invoice_id: The ID of the invoice to update.
+@api_view(['POST'])
+def create_invoice(request):
+    """
+    Create a new invoice.
 
-        Returns:
-        - If the invoice exists and the data is valid, returns the updated invoice data.
-        - If the invoice does not exist or the data is invalid, returns an error response.
+    Parameters:
+    - request: The HTTP request object.
 
-        HTTP Methods: PATCH
-        """
-        try:
-            invoice = Invoice.objects.get(pk=invoice_id)
-        except Invoice.DoesNotExist:
-            return Response({"error": "Invoice not found."}, status=status.HTTP_404_NOT_FOUND)
+    Returns:
+    - If the invoice is created successfully, returns the serialized invoice data.
+    - If the invoice data is invalid, returns an error response.
 
-        serializer = InvoiceSerializer(invoice, data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    HTTP Methods: POST
+    """
+    invoice_number = generate_invoice_number()
+    request.data['invoice_number'] = invoice_number
+    serializer = InvoiceSerializer(data=request.data)
+    if serializer.is_valid():
+        serializer.save()
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    def delete(self, request, invoice_id):
-        """
-        Delete an existing invoice by its ID.
 
-        Parameters:
-        - request: The HTTP request object.
-        - invoice_id: The ID of the invoice to delete.
+@api_view(['POST'])
+def update_invoice(request, invoice_id):
+    """
+    Update an existing invoice by its ID.
 
-        Returns:
-        - If the invoice exists, deletes the invoice and returns a success response.
-        - If the invoice does not exist, returns an error response.
+    Parameters:
+    - request: The HTTP request object.
+    - invoice_id: The ID of the invoice to update.
 
-        HTTP Methods: DELETE
-        """
-        try:
-            invoice = Invoice.objects.get(pk=invoice_id)
-        except Invoice.DoesNotExist:
-            return Response({"error": "Invoice not found."}, status=status.HTTP_404_NOT_FOUND)
+    Returns:
+    - If the invoice exists and the data is valid, returns the updated invoice data.
+    - If the invoice does not exist or the data is invalid, returns an error response.
 
-        invoice.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
+    HTTP Methods: POST
+    """
+    if getattr(request.user, "role", None) not in ["super-admin", "finance-admin", "admin"]:
+        return Response({"message": "Administrator is not authorized"}, status=403)
 
-    @staticmethod
-    def generate_invoice_number(self):
-        """
-        Generate a unique invoice number with the prefix "INV-" followed by numbers based on the current date.
+    try:
+        invoice = Invoice.objects.get(pk=invoice_id)
+    except Invoice.DoesNotExist:
+        return Response({"error": "Invoice not found."}, status=status.HTTP_404_NOT_FOUND)
 
-        Returns:
-        - Unique invoice number string.
+    serializer = InvoiceSerializer(invoice, data=request.data)
+    if serializer.is_valid():
+        serializer.save()
+        return Response(serializer.data)
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-        Example:
-        - INV-20230615-00001
-        """
-        today = datetime.date.today()
-        invoice_count = Invoice.objects.filter(created_at__date=today).count()
-        invoice_number = f"INV-{today.strftime('%Y%m%d')}-{invoice_count + 1:03d}"
-        return invoice_number
 
-    @staticmethod
-    def payment_details(self, invoice):
-        """
-        Calculates the payment details for an invoice.
+@api_view(['POST'])
+def delete_invoice(request, invoice_id):
+    """
+    Delete an existing invoice by its ID.
 
-        Args:
-            invoice (Invoice): The invoice object for which to calculate the payment details.
+    Parameters:
+    - request: The HTTP request object.
+    - invoice_id: The ID of the invoice to delete.
 
-        Returns:
-            Invoice: The updated invoice object with total amount, paid amount, and balance calculated.
-        """
-        total_amount = 0
-        paid_amount = 0
+    Returns:
+    - If the invoice exists, deletes the invoice and returns a success response.
+    - If the invoice does not exist, returns an error response.
 
-        for item in invoice.items:
-            total_amount += item['quantity'] * item['unit_price']
+    HTTP Methods: POST
+    """
+    if getattr(request.user, "role", None) not in ["super-admin", "finance-admin", "admin"]:
+        return Response({"message": "Administrator is not authorized"}, status=403)
 
-        invoice.total_amount = total_amount
+    try:
+        invoice = Invoice.objects.get(pk=invoice_id)
+    except Invoice.DoesNotExist:
+        return Response({"error": "Invoice not found."}, status=status.HTTP_404_NOT_FOUND)
 
-        payments = Payment.objects.filter(invoice_number=invoice.invoice_number)
-        for payment in payments:
-            paid_amount += payment.amount
+    invoice.delete()
+    return Response(status=status.HTTP_204_NO_CONTENT)
 
-        invoice.paid_amount = paid_amount
-        invoice.balance = total_amount - paid_amount
 
-        return invoice
+def generate_invoice_number():
+    """
+    Generate a unique invoice number with the prefix "INV-" followed by numbers based on the current date.
+
+    Returns:
+    - Unique invoice number string.
+
+    Example:
+    - INV-20230811-00001
+    """
+    today = datetime.date.today()
+    invoice_count = Invoice.objects.filter(created_at__date=today).count()
+    invoice_number = f"INV-{today.strftime('%Y%m%d')}-{invoice_count + 1:03d}"
+    return invoice_number
+
+
+def payment_details(invoice):
+    """
+    Calculate the payment details for an invoice.
+
+    Args:
+    - invoice (Invoice): The invoice object for which to calculate the payment details.
+
+    Returns:
+    - Invoice: The updated invoice object with total amount, paid amount, and balance calculated.
+    """
+    total_amount = 0
+    paid_amount = 0
+
+    for item in invoice.items:
+        total_amount += item['quantity'] * item['unit_price']
+
+    invoice.total_amount = total_amount
+
+    payments = Payment.objects.filter(invoice_number=invoice.invoice_number)
+    for payment in payments:
+        paid_amount += payment.amount
+
+    invoice.paid_amount = paid_amount
+    invoice.balance = total_amount - paid_amount
+
+    return invoice
+
+
+@api_view(['POST'])
+def search_invoices(request):
+    """
+    Search and retrieve a paginated list of invoices based on the provided search criteria.
+
+    Args:
+        request (Request): The HTTP POST request containing the search parameters.
+
+    Returns:
+        Response: A Response object containing the serialized data of the matching invoices.
+
+    Raises:
+        - KeyError: If the 'page' or 'limit' keys are not present in the request data.
+        - Exception: If there is an error while processing the search or serialization.
+    """
+    query = get_invoices_query(request.data)
+
+    offset = get_offset(request.data['page'], request.data['limit'])
+    data = Invoice.objects.filter(**query).order_by("-created_at")[offset["start"]:offset["end"]]
+
+    for invoice in data:
+        invoice = payment_details(invoice)
+
+    serializer = InvoiceSerializer(data, many=True)
+
+    return Response(serializer.data)
+
+
+def get_invoices_query(data):
+    query = {}
+
+    if data['invoice_number']:
+        query["invoice_number__contains"] = data['invoice_number']
+
+    if data['type']:
+        query["description__contains"] = data['type']
+
+    if data['status']:
+        query["status"] = data['status']
+
+    return query
+
+
+def get_offset(page, limit):
+    """
+    Calculate the pagination range.
+
+    Args:
+        page (int): The current page number.
+        limit (int): The maximum number of items per page.
+
+    Returns:
+        dict: A dictionary containing the start and end offsets for pagination.
+    """
+    end = limit * page
+    start = (end - limit)
+    start = start + 1 if start != 0 else start
+
+    return {"start": start, "end": end}

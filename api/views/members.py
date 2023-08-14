@@ -7,12 +7,13 @@ from rest_framework import status
 from rest_framework_simplejwt.tokens import RefreshToken
 from api.models.member import Member
 from api.serializers.member import MemberSerializer
+from api.utils.email import send_email
 from dotenv import load_dotenv
 
 load_dotenv()
 
 
-@api_view(['GET'])
+@api_view(["GET"])
 def get_member(request, member_id):
     """
     Retrieve details of a member by their member ID.
@@ -29,10 +30,12 @@ def get_member(request, member_id):
         serializer = MemberSerializer(member)
         return Response(serializer.data)
     except Member.DoesNotExist:
-        return Response({"error": "Member not found."}, status=status.HTTP_404_NOT_FOUND)
+        return Response(
+            {"error": "Member not found."}, status=status.HTTP_404_NOT_FOUND
+        )
 
 
-@api_view(['GET'])
+@api_view(["GET"])
 def get_members(request):
     """
     Retrieve all members.
@@ -45,7 +48,7 @@ def get_members(request):
     return Response(serializer.data)
 
 
-@api_view(['POST'])
+@api_view(["POST"])
 def create_member(request):
     """
     Create a new member.
@@ -61,20 +64,20 @@ def create_member(request):
     """
     serializer = MemberSerializer(data=request.data)
     if serializer.is_valid():
-        password = serializer.validated_data.get('password')
-        serializer.validated_data['password'] = make_password(password)
+        password = serializer.validated_data.get("password")
+        serializer.validated_data["password"] = make_password(password)
         member = serializer.save()
         token = generate_token(member)
         data_from = request.data.get("data_from")
         if data_from == "portal":
             send_welcome_email(member, password)
         elif data_from == "website":
-            send_verification_email(member, token.get('access'))
+            send_verification_email(member, token.get("access"))
         return Response({"token": token}, status=status.HTTP_201_CREATED)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-@api_view(['POST'])
+@api_view(["POST"])
 def update_member(request, member_id):
     """
     Update an existing member by their member ID.
@@ -92,7 +95,9 @@ def update_member(request, member_id):
     try:
         member = Member.objects.get(pk=member_id)
     except Member.DoesNotExist:
-        return Response({"error": "Member not found."}, status=status.HTTP_404_NOT_FOUND)
+        return Response(
+            {"error": "Member not found."}, status=status.HTTP_404_NOT_FOUND
+        )
 
     serializer = MemberSerializer(member, data=request.data, partial=True)
     if serializer.is_valid():
@@ -101,7 +106,7 @@ def update_member(request, member_id):
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-@api_view(['POST'])
+@api_view(["POST"])
 def delete_member(request, member_id):
     """
     Delete an existing member by their member ID.
@@ -119,7 +124,9 @@ def delete_member(request, member_id):
     try:
         member = Member.objects.get(pk=member_id)
     except Member.DoesNotExist:
-        return Response({"error": "Member not found."}, status=status.HTTP_404_NOT_FOUND)
+        return Response(
+            {"error": "Member not found."}, status=status.HTTP_404_NOT_FOUND
+        )
 
     member.delete()
     return Response(status=status.HTTP_204_NO_CONTENT)
@@ -137,8 +144,8 @@ def generate_token(user):
     """
     refresh = RefreshToken.for_user(user)
     return {
-        'access': str(refresh.access_token),
-        'refresh': str(refresh),
+        "access": str(refresh.access_token),
+        "refresh": str(refresh),
     }
 
 
@@ -154,7 +161,11 @@ def send_verification_email(member, token):
         dict: The response from the send_email function.
     """
     subject = "Welcome to The Clean Cooking Association Kenya"
-    context = {"recipient_name": member.first_name, "token": token, "url": os.getenv('FRONTEND_URL')}
+    context = {
+        "recipient_name": member.first_name,
+        "token": token,
+        "url": os.getenv("FRONTEND_URL"),
+    }
     return send_email(member.email, subject, context, "welcome_email.html")
 
 
@@ -170,11 +181,16 @@ def send_welcome_email(member, password):
         dict: The response from the send_email function.
     """
     subject = "Welcome to The Clean Cooking Association Kenya. Your Account is Ready!"
-    context = {"recipient_name": member.first_name, "email": member.email, "password": password, "url": os.getenv('FRONTEND_URL')}
+    context = {
+        "recipient_name": member.first_name,
+        "email": member.email,
+        "password": password,
+        "url": os.getenv("FRONTEND_URL"),
+    }
     return send_email(member.email, subject, context, "member_welcome_email.html")
 
 
-@api_view(['POST'])
+@api_view(["POST"])
 def search_members(request):
     """
     Search members based on specified criteria.
@@ -208,8 +224,10 @@ def search_members(request):
     """
     query = get_members_query(request.data)
 
-    offset = get_offset(request.data['page'], request.data['limit'])
-    data = Member.objects.filter(**query).order_by('company')[offset["start"]:offset["end"]]
+    offset = get_offset(request.data["page"], request.data["limit"])
+    data = Member.objects.filter(**query).order_by("company")[
+        offset["start"] : offset["end"]
+    ]
 
     member_serializer = MemberSerializer(data, many=True)
     return Response(member_serializer.data)
@@ -218,17 +236,17 @@ def search_members(request):
 def get_members_query(data):
     query = {}
 
-    if data['keyword']:
-        query["company__contains"] = data['keyword']
+    if data["keyword"]:
+        query["company__contains"] = data["keyword"]
 
-    if data['technology']:
-        query["technology"] = data['technology']
+    if data["technology"]:
+        query["technology"] = data["technology"]
 
-    if data['registration_status']:
-        query["registration_status"] = data['registration_status']
+    if data["registration_status"]:
+        query["registration_status"] = data["registration_status"]
 
-    if data['subscription_status']:
-        query["subscription_status"] = data['subscription_status']
+    if data["subscription_status"]:
+        query["subscription_status"] = data["subscription_status"]
 
     return query
 
@@ -245,7 +263,7 @@ def get_offset(page, limit):
         dict: A dictionary containing the start and end offsets for pagination.
     """
     end = limit * page
-    start = (end - limit)
+    start = end - limit
     start = start + 1 if start != 0 else start
 
     return {"start": start, "end": end}

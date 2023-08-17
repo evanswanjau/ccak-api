@@ -1,6 +1,8 @@
 import os
+import jwt
 
 from django.contrib.auth.hashers import make_password
+from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.decorators import api_view
@@ -25,7 +27,13 @@ def get_administrator(request, administrator_id):
     - If the administrator does not exist, returns an error response.
     """
     try:
-        if getattr(request.user, "role", None) != "super-admin":
+        if getattr(request.user, "user_type", None) != "administrator":
+            return Response({"message": "User is not authorized"}, status=403)
+
+        if (
+            getattr(request.user, "id", None) != administrator_id
+            and getattr(request.user, "role", None) != "super-admin"
+        ):
             return Response({"message": "Administrator is not authorized"}, status=403)
 
         administrator = Administrator.objects.get(pk=administrator_id)
@@ -95,7 +103,13 @@ def update_administrator(request, administrator_id):
     - If the administrator does not exist or the data is invalid, returns an error response.
     """
     try:
-        if getattr(request.user, "role", None) != "super-admin":
+        if getattr(request.user, "user_type", None) != "administrator":
+            return Response({"message": "User is not authorized"}, status=403)
+
+        if (
+            getattr(request.user, "id", None) != administrator_id
+            and getattr(request.user, "role", None) != "super-admin"
+        ):
             return Response({"message": "Administrator is not authorized"}, status=403)
 
         administrator = Administrator.objects.get(pk=administrator_id)

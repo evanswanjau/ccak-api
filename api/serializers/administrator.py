@@ -11,13 +11,25 @@ class AdministratorSerializer(serializers.ModelSerializer):
     Provides validation and serialization/deserialization of Administrator objects.
     """
 
+    author = serializers.CharField()
+
     class Meta:
         model = Administrator
-        fields = ['id', 'first_name', 'last_name', 'email', 'password', 'role', 'status', 'created_by', 'created_at',
-                  'last_updated']
+        fields = [
+            "id",
+            "first_name",
+            "last_name",
+            "email",
+            "password",
+            "role",
+            "status",
+            "created_by",
+            "created_at",
+            "author",
+            "last_updated",
+        ]
 
     def validate_email(self, email):
-        print(self.instance)
         """
         Validate the email field.
 
@@ -31,16 +43,21 @@ class AdministratorSerializer(serializers.ModelSerializer):
             serializers.ValidationError: If the email is not valid or if it already exists.
         """
         # Perform email validation here
-        if not re.match(r'^[\w\.-]+@[\w\.-]+\.\w+$', email):
+        if not re.match(r"^[\w\.-]+@[\w\.-]+\.\w+$", email):
             raise serializers.ValidationError("Invalid email address.")
 
         # check if email already exists while creating an administrator
         if self.instance is None and Administrator.objects.filter(email=email).exists():
-            raise serializers.ValidationError('Email already exists.')
+            raise serializers.ValidationError("Email already exists.")
 
         # check if email already exists while updating am administrator
-        if self.instance and Administrator.objects.filter(email=email).exclude(id=self.instance.id).exists():
-            raise serializers.ValidationError('Email already exists.')
+        if (
+            self.instance
+            and Administrator.objects.filter(email=email)
+            .exclude(id=self.instance.id)
+            .exists()
+        ):
+            raise serializers.ValidationError("Email already exists.")
         return email
 
     def update(self, instance, validated_data):
@@ -57,7 +74,7 @@ class AdministratorSerializer(serializers.ModelSerializer):
             Administrator: The updated administrator instance.
         """
         # Hash the password using bcrypt if it is updated
-        if 'password' in validated_data:
-            password = validated_data.pop('password')
-            validated_data['password'] = make_password(password)
+        if "password" in validated_data:
+            password = validated_data.pop("password")
+            validated_data["password"] = make_password(password)
         return super().update(instance, validated_data)

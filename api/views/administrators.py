@@ -37,6 +37,10 @@ def get_administrator(request, administrator_id):
             return Response({"message": "Administrator is not authorized"}, status=403)
 
         administrator = Administrator.objects.get(pk=administrator_id)
+
+        author = Administrator.objects.get(pk=administrator.created_by_id)
+        administrator.author = f"{author.first_name} {author.last_name}"
+
         serializer = AdministratorSerializer(administrator)
         return Response(serializer.data)
     except Administrator.DoesNotExist:
@@ -57,6 +61,11 @@ def get_administrators(request):
         return Response({"message": "Administrator is not authorized"}, status=403)
 
     administrators = Administrator.objects.all()
+
+    for administrator in administrators:
+        author = Administrator.objects.get(pk=administrator.created_by_id)
+        administrator.author = f"{author.first_name} {author.last_name}"
+
     serializer = AdministratorSerializer(administrators, many=True)
     return Response(serializer.data)
 
@@ -81,6 +90,8 @@ def create_administrator(request):
         # Salt and hash the password
         password = serializer.validated_data.get("password")
         serializer.validated_data["password"] = make_password(password)
+
+        serializer.validated_data["created_by"] = request.user
 
         administrator = serializer.save()
         send_welcome_email(administrator, password)

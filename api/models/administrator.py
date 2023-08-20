@@ -14,6 +14,7 @@ class Administrator(AbstractUser):
     role = models.CharField(max_length=300, default="admin")
     status = models.CharField(max_length=150, default="active")
     user_type = models.CharField(max_length=150, default="administrator")
+    author = models.CharField(max_length=150, blank=True)
     created_by = models.ForeignKey(
         "self",
         on_delete=models.SET_NULL,

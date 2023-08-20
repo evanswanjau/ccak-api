@@ -11,8 +11,6 @@ class AdministratorSerializer(serializers.ModelSerializer):
     Provides validation and serialization/deserialization of Administrator objects.
     """
 
-    author = serializers.CharField()
-
     class Meta:
         model = Administrator
         fields = [

@@ -1,5 +1,6 @@
 from django.db import models
 from django.utils import timezone
+from api.models.administrator import Administrator
 
 
 class Post(models.Model):
@@ -7,6 +8,7 @@ class Post(models.Model):
     A schema for an article post.
     This schema defines the properties of an article.
     """
+
     title = models.CharField(max_length=300, blank=True)
     excerpt = models.CharField(max_length=500, blank=True)
     tags = models.JSONField(default=dict)
@@ -25,6 +27,14 @@ class Post(models.Model):
     views = models.IntegerField(default=0)
     status = models.CharField(max_length=150, default="draft")
     step = models.CharField(max_length=150, default="writing")
-    created_by = models.IntegerField(default=0)
+    author = models.CharField(max_length=150, blank=True)
+    created_by = models.ForeignKey(
+        Administrator,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        default=1,
+        related_name="%(class)s_created",  # Customize related name as needed
+    )
     created_at = models.DateTimeField(default=timezone.now)
     last_updated = models.DateTimeField(auto_now=True)

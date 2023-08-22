@@ -97,10 +97,23 @@ def update_socialpost(request, socialpost_id):
     try:
         socialpost = SocialPost.objects.get(pk=socialpost_id)
 
-        if getattr(request.user, "id", None) != socialpost.created_by_id:
+        if getattr(request.user, "user_type", None) == "administrator" and getattr(
+            request.user, "role", None
+        ) not in [
+            "super-admin",
+            "content-admin",
+            "admin",
+        ]:
             return Response(
-                {"message": "You are not authorized to edit this post"}, status=403
+                {"message": "Administrator is not authorized to edit this post"},
+                status=403,
             )
+
+        if getattr(request.user, "user_type", None) == "member":
+            if getattr(request.user, "id", None) != socialpost.created_by_id:
+                return Response(
+                    {"message": "You are not authorized to edit this post"}, status=403
+                )
     except SocialPost.DoesNotExist:
         return Response(
             {"error": "socialpost not found."}, status=status.HTTP_404_NOT_FOUND

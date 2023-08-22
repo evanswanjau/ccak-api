@@ -2,10 +2,11 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status
 from api.models.comment import Comment
+from api.models.member import Member
 from api.serializers.comment import CommentSerializer
 
 
-@api_view(['POST'])
+@api_view(["POST"])
 def create_comment(request):
     """
     Create a new comment.
@@ -19,11 +20,13 @@ def create_comment(request):
 
     HTTP Methods: comment
     """
-    if getattr(request.user, "subscription_status", None) != "inactive":
+    if getattr(request.user, "user_type", None) != "member":
+        return Response({"message": "User is not authorized"}, status=403)
+
+    if getattr(request.user, "subscription_status", None) != "active":
         return Response({"message": "Kindly renew you subscription"}, status=403)
 
     request.data["created_by"] = request.user.id
-    # request.data["socialpost_id"] = request.data.get("socialpost")
 
     serializer = CommentSerializer(data=request.data)
     if serializer.is_valid():
@@ -32,7 +35,7 @@ def create_comment(request):
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-@api_view(['POST'])
+@api_view(["POST"])
 def update_comment(request, comment_id):
     """
     Update an existing comment by their comment ID.
@@ -49,8 +52,29 @@ def update_comment(request, comment_id):
     """
     try:
         comment = Comment.objects.get(pk=comment_id)
+
+        if getattr(request.user, "user_type", None) == "administrator" and getattr(
+            request.user, "role", None
+        ) not in [
+            "super-admin",
+            "content-admin",
+            "admin",
+        ]:
+            return Response(
+                {"message": "Administrator is not authorized to edit this comment"},
+                status=403,
+            )
+
+        if getattr(request.user, "user_type", None) == "member":
+            if getattr(request.user, "id", None) != comment.created_by_id:
+                return Response(
+                    {"message": "You are not authorized to edit this comment"},
+                    status=403,
+                )
     except Comment.DoesNotExist:
-        return Response({"error": "comment not found."}, status=status.HTTP_404_NOT_FOUND)
+        return Response(
+            {"error": "comment not found."}, status=status.HTTP_404_NOT_FOUND
+        )
 
     request.data["created_by"] = request.user.id
 
@@ -61,7 +85,7 @@ def update_comment(request, comment_id):
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-@api_view(['POST'])
+@api_view(["POST"])
 def delete_comment(request, comment_id):
     """
     Delete an existing comment by their comment ID.
@@ -78,15 +102,21 @@ def delete_comment(request, comment_id):
     """
     try:
         comment = Comment.objects.get(pk=comment_id)
-    except Comment.DoesNotExist:
-        return Response({"error": "Comment not found."}, status=status.HTTP_404_NOT_FOUND)
 
+        if getattr(request.user, "id", None) != comment.created_by_id:
+            return Response(
+                {"message": "You are not authorized to delete this comment"}, status=403
+            )
+    except Comment.DoesNotExist:
+        return Response(
+            {"error": "Comment not found."}, status=status.HTTP_404_NOT_FOUND
+        )
 
     comment.delete()
     return Response(status=status.HTTP_204_NO_CONTENT)
 
 
-@api_view(['GET'])
+@api_view(["GET"])
 def socialpost_comments(request, socialpost_id):
     """
     Retrieve all socialposts comments.
@@ -94,6 +124,12 @@ def socialpost_comments(request, socialpost_id):
     Returns:
     - Serialized data for all comments for a single socialpost.
     """
-    comments = Comment.objects.filter(socialpost=socialpost_id)
+    comments = Comment.objects.filter(socialpost=socialpost_id).order_by("-created_at")
+
+    for comment in comments:
+        member = Member.objects.get(pk=comment.created_by_id)
+        comment.author = f"{member.first_name} {member.last_name}"
+        comment.company = member.company
+
     serializer = CommentSerializer(comments, many=True)
     return Response(serializer.data)

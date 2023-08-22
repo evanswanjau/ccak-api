@@ -2,10 +2,11 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status
 from api.models.socialpost import SocialPost
+from api.models.member import Member
 from api.serializers.socialpost import SocialPostSerializer
 
 
-@api_view(['GET'])
+@api_view(["GET"])
 def get_socialpost(request, socialpost_id):
     """
     Retrieve details of a socialpost by their socialpost ID.
@@ -19,13 +20,18 @@ def get_socialpost(request, socialpost_id):
     """
     try:
         socialpost = SocialPost.objects.get(pk=socialpost_id)
+
+        member = Member.objects.get(pk=socialpost.created_by_id)
+        socialpost.author = f"{member.first_name} {member.last_name}"
+        socialpost.company = member.company
+
         serializer = SocialPostSerializer(socialpost)
         return Response(serializer.data)
     except SocialPost.DoesNotExist:
         return Response({"error": "Post not found."}, status=status.HTTP_404_NOT_FOUND)
 
 
-@api_view(['GET'])
+@api_view(["GET"])
 def get_socialposts(request):
     """
     Retrieve all socialposts.
@@ -33,12 +39,18 @@ def get_socialposts(request):
     Returns:
     - Serialized data for all socialposts.
     """
-    socialposts = SocialPost.objects.all()
+    socialposts = SocialPost.objects.filter(status="active").order_by("-created_at")
+
+    for socialpost in socialposts:
+        member = Member.objects.get(pk=socialpost.created_by_id)
+        socialpost.author = f"{member.first_name} {member.last_name}"
+        socialpost.company = member.company
+
     serializer = SocialPostSerializer(socialposts, many=True)
     return Response(serializer.data)
 
 
-@api_view(['POST'])
+@api_view(["POST"])
 def create_socialpost(request):
     """
     Create a new socialpost.
@@ -52,8 +64,11 @@ def create_socialpost(request):
 
     HTTP Methods: socialpost
     """
+    if getattr(request.user, "user_type", None) != "member":
+        return Response({"message": "User is not authorized"}, status=403)
+
     if getattr(request.user, "subscription_status", None) != "active":
-        return Response({"message": "Kindly renew you subscription"}, status=403)
+        return Response({"message": "Kindly renew your subscription"}, status=403)
 
     request.data["created_by"] = request.user.id
 
@@ -64,7 +79,7 @@ def create_socialpost(request):
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-@api_view(['POST'])
+@api_view(["POST"])
 def update_socialpost(request, socialpost_id):
     """
     Update an existing socialpost by their socialpost ID.
@@ -81,8 +96,15 @@ def update_socialpost(request, socialpost_id):
     """
     try:
         socialpost = SocialPost.objects.get(pk=socialpost_id)
+
+        if getattr(request.user, "id", None) != socialpost.created_by_id:
+            return Response(
+                {"message": "You are not authorized to edit this post"}, status=403
+            )
     except SocialPost.DoesNotExist:
-        return Response({"error": "socialpost not found."}, status=status.HTTP_404_NOT_FOUND)
+        return Response(
+            {"error": "socialpost not found."}, status=status.HTTP_404_NOT_FOUND
+        )
 
     serializer = SocialPostSerializer(socialpost, data=request.data)
     if serializer.is_valid():
@@ -91,7 +113,7 @@ def update_socialpost(request, socialpost_id):
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-@api_view(['POST'])
+@api_view(["POST"])
 def delete_socialpost(request, socialpost_id):
     """
     Delete an existing socialpost by their socialpost ID.
@@ -108,14 +130,21 @@ def delete_socialpost(request, socialpost_id):
     """
     try:
         socialpost = SocialPost.objects.get(pk=socialpost_id)
+
+        if getattr(request.user, "id", None) != socialpost.created_by_id:
+            return Response(
+                {"message": "You are not authorized to delete this post"}, status=403
+            )
     except SocialPost.DoesNotExist:
-        return Response({"error": "socialpost not found."}, status=status.HTTP_404_NOT_FOUND)
+        return Response(
+            {"error": "socialpost not found."}, status=status.HTTP_404_NOT_FOUND
+        )
 
     socialpost.delete()
     return Response(status=status.HTTP_204_NO_CONTENT)
 
 
-@api_view(['GET'])
+@api_view(["GET"])
 def member_socialposts(request, member_id):
     """
     Retrieve all member socialposts.
@@ -123,6 +152,14 @@ def member_socialposts(request, member_id):
     Returns:
     - Serialized data for all socialposts for a single member.
     """
-    socialposts = SocialPost.objects.filter(created_by=member_id)
+    socialposts = SocialPost.objects.filter(created_by=member_id).order_by(
+        "-created_at"
+    )
+
+    for socialpost in socialposts:
+        member = Member.objects.get(pk=socialpost.created_by_id)
+        socialpost.author = f"{member.first_name} {member.last_name}"
+        socialpost.company = member.company
+
     serializer = SocialPostSerializer(socialposts, many=True)
     return Response(serializer.data)

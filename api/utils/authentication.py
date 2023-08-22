@@ -7,19 +7,20 @@ from api.models.member import Member
 class UserJWTAuthentication(JWTAuthentication):
     def get_user(self, validated_token):
         try:
-            return Administrator.objects.get(id=validated_token["user_id"])
+            user_type = validated_token.get("user_type")
+            if user_type == "admin":
+                return Administrator.objects.get(id=validated_token["user_id"])
+            elif user_type == "member":
+                return Member.objects.get(id=validated_token["user_id"])
+            else:
+                raise AuthenticationFailed("Invalid user type in token.")
         except Administrator.DoesNotExist:
-            pass  # Administrator not found, continue to member authentication
-        except KeyError:
-            raise AuthenticationFailed('Invalid token. No "user_id" found in the token.')
-        except TypeError:
-            raise AuthenticationFailed('Empty token. Please provide a valid JWT token.')
-
-        try:
-            return Member.objects.get(id=validated_token["user_id"])
+            raise AuthenticationFailed("No user found with this token.")
         except Member.DoesNotExist:
-            raise AuthenticationFailed('No user found with this token.')
+            raise AuthenticationFailed("No user found with this token.")
         except KeyError:
-            raise AuthenticationFailed('Invalid token. No "user_id" found in the token.')
+            raise AuthenticationFailed(
+                'Invalid token. No "user_id" found in the token.'
+            )
         except TypeError:
-            raise AuthenticationFailed('Empty token. Please provide a valid JWT token.')
+            raise AuthenticationFailed("Empty token. Please provide a valid JWT token.")

@@ -66,8 +66,21 @@ def create_member(request):
     if serializer.is_valid():
         password = serializer.validated_data.get("password")
         serializer.validated_data["password"] = make_password(password)
+        serializer.validated_data["bookmarks"] = []
+        serializer.validated_data["likes"] = []
+
         member = serializer.save()
-        token = generate_token(member)
+
+        # Generate tokens
+        refresh = RefreshToken.for_user(member)
+        refresh["user_type"] = "member"
+        refresh.access_token.payload["user_type"] = "member"
+
+        token = {
+            "refresh": str(refresh),
+            "access": str(refresh.access_token),
+        }
+
         data_from = request.data.get("data_from")
         if data_from == "portal":
             send_welcome_email(member, password)

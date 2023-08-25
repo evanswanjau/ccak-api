@@ -26,6 +26,7 @@ class Member(models.Model):
     website_link = models.CharField(max_length=300, blank=True)
     logo = models.CharField(max_length=300, blank=True)
     bookmarks = models.JSONField(default=dict)
+    likes = models.JSONField(default=dict)
     registration_status = models.CharField(max_length=150, default="unregistered")
     subscription_status = models.CharField(max_length=150, default="inactive")
     subscription_category = models.CharField(max_length=300, blank=True)

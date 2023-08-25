@@ -31,6 +31,7 @@ class MemberSerializer(serializers.ModelSerializer):
             "website_link",
             "logo",
             "bookmarks",
+            "likes",
             "registration_status",
             "subscription_status",
             "subscription_category",

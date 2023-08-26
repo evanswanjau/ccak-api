@@ -13,6 +13,7 @@ class SocialPostSerializer(serializers.ModelSerializer):
             "status",
             "author",
             "company",
+            "logo",
             "created_by",
             "created_at",
             "last_updated",

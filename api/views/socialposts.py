@@ -1,9 +1,36 @@
+from functools import wraps
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status
 from api.models.socialpost import SocialPost
 from api.models.member import Member
 from api.serializers.socialpost import SocialPostSerializer
+
+
+def admin_access_required(view_func):
+    @wraps(view_func)
+    def _wrapped_view(request, *args, **kwargs):
+        user = request.user
+        socialpost_id = kwargs.get("socialpost_id")
+
+        if getattr(user, "role", None) in [
+            "super-admin",
+            "admin",
+            "content-admin",
+        ]:
+            return view_func(request, *args, **kwargs)
+
+        socialpost = SocialPost.objects.get(pk=socialpost_id)
+        # Allow member to edit or delete their own socialpost
+        if (
+            getattr(user, "user_type", None) == "member"
+            and socialpost.created_by_id == user.id
+        ):
+            return view_func(request, *args, **kwargs)
+
+        return Response({"message": "User is not authorized"}, status=403)
+
+    return _wrapped_view
 
 
 @api_view(["GET"])
@@ -24,6 +51,7 @@ def get_socialpost(request, socialpost_id):
         member = Member.objects.get(pk=socialpost.created_by_id)
         socialpost.author = f"{member.first_name} {member.last_name}"
         socialpost.company = member.company
+        socialpost.logo = member.logo
 
         serializer = SocialPostSerializer(socialpost)
         return Response(serializer.data)
@@ -45,6 +73,7 @@ def get_socialposts(request):
         member = Member.objects.get(pk=socialpost.created_by_id)
         socialpost.author = f"{member.first_name} {member.last_name}"
         socialpost.company = member.company
+        socialpost.logo = member.logo
 
     serializer = SocialPostSerializer(socialposts, many=True)
     return Response(serializer.data)
@@ -95,25 +124,24 @@ def update_socialpost(request, socialpost_id):
     HTTP Methods: PATCH
     """
     try:
+        if getattr(request.user, "user_type", None) is None:
+            return Response({"message": "User is not authorized"}, status=403)
+
+        if getattr(request.user, "role", None) not in [
+            "super-admin",
+            "admin",
+            "content-admin",
+        ]:
+            return Response({"message": "Administrator is not authorized"}, status=403)
+
         socialpost = SocialPost.objects.get(pk=socialpost_id)
 
-        if getattr(request.user, "user_type", None) == "administrator" and getattr(
-            request.user, "role", None
-        ) not in [
-            "super-admin",
-            "content-admin",
-            "admin",
-        ]:
-            return Response(
-                {"message": "Administrator is not authorized to edit this post"},
-                status=403,
-            )
+        # Allow member to edit or delete their own socialpost
+        if getattr(
+            request.user, "user_type", None
+        ) == "member" and socialpost.created_by_id != request.user.get("id"):
+            return Response({"message": "Member is not authorized"}, status=403)
 
-        if getattr(request.user, "user_type", None) == "member":
-            if getattr(request.user, "id", None) != socialpost.created_by_id:
-                return Response(
-                    {"message": "You are not authorized to edit this post"}, status=403
-                )
     except SocialPost.DoesNotExist:
         return Response(
             {"error": "socialpost not found."}, status=status.HTTP_404_NOT_FOUND
@@ -142,12 +170,27 @@ def delete_socialpost(request, socialpost_id):
     HTTP Methods: DELETE
     """
     try:
+        if getattr(request.user, "user_type", None) is None:
+            return Response({"message": "User is not authorized"}, status=403)
+
+        if getattr(request.user, "user_type", None) == "administratorr" and getattr(
+            request.user, "role", None
+        ) not in [
+            "super-admin",
+            "admin",
+            "content-admin",
+        ]:
+            return Response({"message": "Administrator is not authorized"}, status=403)
+
         socialpost = SocialPost.objects.get(pk=socialpost_id)
 
-        if getattr(request.user, "id", None) != socialpost.created_by_id:
-            return Response(
-                {"message": "You are not authorized to delete this post"}, status=403
-            )
+        # Allow member to edit or delete their own socialpost
+        if (
+            getattr(request.user, "user_type", None) == "member"
+            and socialpost.created_by_id != request.user.id
+        ):
+            return Response({"message": "Member is not authorized"}, status=403)
+
     except SocialPost.DoesNotExist:
         return Response(
             {"error": "socialpost not found."}, status=status.HTTP_404_NOT_FOUND
@@ -173,6 +216,7 @@ def member_socialposts(request, member_id):
         member = Member.objects.get(pk=socialpost.created_by_id)
         socialpost.author = f"{member.first_name} {member.last_name}"
         socialpost.company = member.company
+        socialpost.logo = member.logo
 
     serializer = SocialPostSerializer(socialposts, many=True)
     return Response(serializer.data)

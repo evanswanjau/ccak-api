@@ -15,6 +15,7 @@ class SocialPost(models.Model):
     status = models.CharField(max_length=150, default="active")
     company = models.CharField(max_length=150, blank=True)
     author = models.CharField(max_length=150, blank=True)
+    logo = models.CharField(max_length=150, blank=True)
     created_by = models.ForeignKey(
         Member,
         on_delete=models.SET_NULL,

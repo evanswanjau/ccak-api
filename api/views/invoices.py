@@ -1,13 +1,33 @@
+import datetime
+from functools import wraps
+
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.decorators import api_view
 from api.models.invoice import Invoice
 from api.models.payment import Payment
 from api.serializers.invoice import InvoiceSerializer
-import datetime
 
 
-@api_view(['GET'])
+def admin_access_required(view_func):
+    @wraps(view_func)
+    def _wrapped_view(request, *args, **kwargs):
+        user = request.user
+
+        # For super-admins and admins
+        if getattr(user, "role", None) in [
+            "super-admin",
+            "admin",
+            "finance-admin",
+        ]:
+            return view_func(request, *args, **kwargs)
+
+        return Response({"message": "Administrator is not authorized"}, status=403)
+
+    return _wrapped_view
+
+
+@api_view(["GET"])
 def get_invoice(request, invoice_id):
     """
     Retrieve details of a specific invoice by its ID.
@@ -24,34 +44,30 @@ def get_invoice(request, invoice_id):
     """
     try:
         invoice = Invoice.objects.get(pk=invoice_id)
+        user = request.user
+
+        # Allow super-admins, admins, and members to view the invoice
+        if getattr(user, "role", None) not in [
+            "super-admin",
+            "admin",
+            "finance-admin",
+        ] or (
+            getattr(user, "user_type", None) == "member"
+            and Invoice.objects.filter(id=invoice_id, member_id=user.id).DoesNotExist()
+        ):
+            return Response({"message": "User is not authorized"}, status=403)
+
         invoice = payment_details(invoice)
+
         serializer = InvoiceSerializer(invoice)
         return Response(serializer.data)
     except Invoice.DoesNotExist:
-        return Response({"error": "Invoice not found."}, status=status.HTTP_404_NOT_FOUND)
+        return Response(
+            {"error": "Invoice not found."}, status=status.HTTP_404_NOT_FOUND
+        )
 
 
-@api_view(['GET'])
-def get_invoices(request):
-    """
-    Retrieve all invoices.
-
-    Parameters:
-    - request: The HTTP request object.
-
-    Returns:
-    - Serialized data for all invoices.
-
-    HTTP Methods: GET
-    """
-    invoices = Invoice.objects.all()
-    for invoice in invoices:
-        invoice = payment_details(invoice)
-    serializer = InvoiceSerializer(invoices, many=True)
-    return Response(serializer.data)
-
-
-@api_view(['POST'])
+@api_view(["POST"])
 def create_invoice(request):
     """
     Create a new invoice.
@@ -66,7 +82,7 @@ def create_invoice(request):
     HTTP Methods: POST
     """
     invoice_number = generate_invoice_number()
-    request.data['invoice_number'] = invoice_number
+    request.data["invoice_number"] = invoice_number
     serializer = InvoiceSerializer(data=request.data)
     if serializer.is_valid():
         serializer.save()
@@ -74,7 +90,8 @@ def create_invoice(request):
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-@api_view(['POST'])
+@api_view(["POST"])
+@admin_access_required
 def update_invoice(request, invoice_id):
     """
     Update an existing invoice by its ID.
@@ -89,13 +106,12 @@ def update_invoice(request, invoice_id):
 
     HTTP Methods: POST
     """
-    if getattr(request.user, "role", None) not in ["super-admin", "finance-admin", "admin"]:
-        return Response({"message": "Administrator is not authorized"}, status=403)
-
     try:
         invoice = Invoice.objects.get(pk=invoice_id)
     except Invoice.DoesNotExist:
-        return Response({"error": "Invoice not found."}, status=status.HTTP_404_NOT_FOUND)
+        return Response(
+            {"error": "Invoice not found."}, status=status.HTTP_404_NOT_FOUND
+        )
 
     serializer = InvoiceSerializer(invoice, data=request.data)
     if serializer.is_valid():
@@ -104,7 +120,8 @@ def update_invoice(request, invoice_id):
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-@api_view(['POST'])
+@api_view(["POST"])
+@admin_access_required
 def delete_invoice(request, invoice_id):
     """
     Delete an existing invoice by its ID.
@@ -119,13 +136,12 @@ def delete_invoice(request, invoice_id):
 
     HTTP Methods: POST
     """
-    if getattr(request.user, "role", None) not in ["super-admin", "finance-admin", "admin"]:
-        return Response({"message": "Administrator is not authorized"}, status=403)
-
     try:
         invoice = Invoice.objects.get(pk=invoice_id)
     except Invoice.DoesNotExist:
-        return Response({"error": "Invoice not found."}, status=status.HTTP_404_NOT_FOUND)
+        return Response(
+            {"error": "Invoice not found."}, status=status.HTTP_404_NOT_FOUND
+        )
 
     invoice.delete()
     return Response(status=status.HTTP_204_NO_CONTENT)
@@ -159,23 +175,30 @@ def payment_details(invoice):
     """
     total_amount = 0
     paid_amount = 0
+    status = "unpaid"
 
     for item in invoice.items:
-        total_amount += item['quantity'] * item['unit_price']
+        total_amount += item["quantity"] * item["unit_price"]
 
     invoice.total_amount = total_amount
 
     payments = Payment.objects.filter(invoice_number=invoice.invoice_number)
+
     for payment in payments:
         paid_amount += payment.amount
 
+    if paid_amount > total_amount or paid_amount == total_amount:
+        status = "paid"
+        # TODO 1. EXECUTE SUBSCRIPTION PROCESS
+
     invoice.paid_amount = paid_amount
     invoice.balance = total_amount - paid_amount
+    invoice.status = status
 
     return invoice
 
 
-@api_view(['POST'])
+@api_view(["POST"])
 def search_invoices(request):
     """
     Search and retrieve a paginated list of invoices based on the provided search criteria.
@@ -190,15 +213,38 @@ def search_invoices(request):
         - KeyError: If the 'page' or 'limit' keys are not present in the request data.
         - Exception: If there is an error while processing the search or serialization.
     """
+    user = request.user
+
+    if getattr(user, "user_type", None) is None:
+        return Response({"message": "User is not authorized"}, status=403)
+
+    if getattr(user, "user_type", None) == "administrator" and getattr(
+        user, "role", None
+    ) not in [
+        "super-admin",
+        "admin",
+        "finance-admin",
+    ]:
+        return Response({"message": "Administrator is not authorized"}, status=403)
+
+    if getattr(user, "user_type", None) == "member" and (
+        request.data.get("member_id") != str(user.id)
+    ):
+        return Response(
+            {"message": "Member is not authorized to view this invoice"}, status=403
+        )
+
     query = get_invoices_query(request.data)
 
-    offset = get_offset(request.data['page'], request.data['limit'])
-    data = Invoice.objects.filter(**query).order_by("-created_at")[offset["start"]:offset["end"]]
+    offset = get_offset(request.data["page"], request.data["limit"])
+    invoices = Invoice.objects.filter(**query).order_by("-created_at")[
+        offset["start"] : offset["end"]
+    ]
 
-    for invoice in data:
+    for invoice in invoices:
         invoice = payment_details(invoice)
 
-    serializer = InvoiceSerializer(data, many=True)
+    serializer = InvoiceSerializer(invoices, many=True)
 
     return Response(serializer.data)
 
@@ -206,14 +252,17 @@ def search_invoices(request):
 def get_invoices_query(data):
     query = {}
 
-    if data['invoice_number']:
-        query["invoice_number__contains"] = data['invoice_number']
+    if data["invoice_number"]:
+        query["invoice_number__contains"] = data["invoice_number"]
 
-    if data['type']:
-        query["description__contains"] = data['type']
+    if data["member_id"]:
+        query["member_id"] = data["member_id"]
 
-    if data['status']:
-        query["status"] = data['status']
+    if data["type"]:
+        query["description__contains"] = data["type"]
+
+    if data["status"]:
+        query["status"] = data["status"]
 
     return query
 
@@ -230,7 +279,7 @@ def get_offset(page, limit):
         dict: A dictionary containing the start and end offsets for pagination.
     """
     end = limit * page
-    start = (end - limit)
+    start = end - limit
     start = start + 1 if start != 0 else start
 
     return {"start": start, "end": end}

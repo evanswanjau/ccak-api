@@ -1,4 +1,5 @@
 import os
+from functools import wraps
 
 from django.contrib.auth.hashers import make_password
 from rest_framework.decorators import api_view
@@ -11,6 +12,28 @@ from api.utils.email import send_email
 from dotenv import load_dotenv
 
 load_dotenv()
+
+
+def admin_access_required(view_func):
+    @wraps(view_func)
+    def _wrapped_view(request, *args, **kwargs):
+        user = request.user
+
+        if getattr(user, "role", None) in [
+            "super-admin",
+            "admin",
+        ]:
+            return view_func(request, *args, **kwargs)
+
+        # Allow member to edit or delete their own account
+        if getattr(user, "user_type", None) == "member" and getattr(
+            user, "id", None
+        ) == kwargs.get("member_id"):
+            return view_func(request, *args, **kwargs)
+
+        return Response({"message": "User is not authorized"}, status=403)
+
+    return _wrapped_view
 
 
 @api_view(["GET"])
@@ -33,19 +56,6 @@ def get_member(request, member_id):
         return Response(
             {"error": "Member not found."}, status=status.HTTP_404_NOT_FOUND
         )
-
-
-@api_view(["GET"])
-def get_members(request):
-    """
-    Retrieve all members.
-
-    Returns:
-    - Serialized data for all members.
-    """
-    members = Member.objects.all()
-    serializer = MemberSerializer(members, many=True)
-    return Response(serializer.data)
 
 
 @api_view(["POST"])
@@ -91,6 +101,7 @@ def create_member(request):
 
 
 @api_view(["POST"])
+@admin_access_required
 def update_member(request, member_id):
     """
     Update an existing member by their member ID.
@@ -120,6 +131,7 @@ def update_member(request, member_id):
 
 
 @api_view(["POST"])
+@admin_access_required
 def delete_member(request, member_id):
     """
     Delete an existing member by their member ID.
@@ -193,7 +205,7 @@ def send_welcome_email(member, password):
     Returns:
         dict: The response from the send_email function.
     """
-    subject = "Welcome to The Clean Cooking Association Kenya. Your Account is Ready!"
+    subject = "Welcome to The Clean Cooking Association Kenya."
     context = {
         "recipient_name": member.first_name,
         "email": member.email,

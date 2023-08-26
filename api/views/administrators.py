@@ -19,9 +19,6 @@ def admin_access_required(view_func):
         user = request.user
         administrator_id = kwargs.get("administrator_id")
 
-        print("administrator_id", administrator_id)
-        print("access_id", getattr(user, "id", None))
-
         if (
             getattr(user, "role", None) == "super-admin"
             or getattr(user, "id", None) == administrator_id

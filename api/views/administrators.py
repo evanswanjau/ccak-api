@@ -1,4 +1,5 @@
 import os
+from functools import wraps
 
 from django.contrib.auth.hashers import make_password
 from rest_framework.response import Response
@@ -12,7 +13,28 @@ from dotenv import load_dotenv
 load_dotenv()
 
 
+def admin_access_required(view_func):
+    @wraps(view_func)
+    def _wrapped_view(request, *args, **kwargs):
+        user = request.user
+        administrator_id = kwargs.get("administrator_id")
+
+        print("administrator_id", administrator_id)
+        print("access_id", getattr(user, "id", None))
+
+        if (
+            getattr(user, "role", None) == "super-admin"
+            or getattr(user, "id", None) == administrator_id
+        ):
+            return view_func(request, *args, **kwargs)
+        else:
+            return Response({"message": "Administrator is not authorized"}, status=403)
+
+    return _wrapped_view
+
+
 @api_view(["GET"])
+@admin_access_required
 def get_administrator(request, administrator_id):
     """
     Retrieve details of an administrator by their administrator ID.
@@ -25,15 +47,6 @@ def get_administrator(request, administrator_id):
     - If the administrator does not exist, returns an error response.
     """
     try:
-        if getattr(request.user, "user_type", None) != "administrator":
-            return Response({"message": "User is not authorized"}, status=403)
-
-        if (
-            getattr(request.user, "id", None) != administrator_id
-            and getattr(request.user, "role", None) != "super-admin"
-        ):
-            return Response({"message": "Administrator is not authorized"}, status=403)
-
         administrator = Administrator.objects.get(pk=administrator_id)
 
         author = Administrator.objects.get(pk=administrator.created_by_id)
@@ -48,6 +61,7 @@ def get_administrator(request, administrator_id):
 
 
 @api_view(["GET"])
+@admin_access_required
 def get_administrators(request):
     """
     Retrieve all administrators.
@@ -55,9 +69,6 @@ def get_administrators(request):
     Returns:
     - Serialized data for all administrators.
     """
-    if getattr(request.user, "role", None) != "super-admin":
-        return Response({"message": "Administrator is not authorized"}, status=403)
-
     administrators = Administrator.objects.all()
 
     for administrator in administrators:
@@ -69,6 +80,7 @@ def get_administrators(request):
 
 
 @api_view(["POST"])
+@admin_access_required
 def create_administrator(request):
     """
     Create a new administrator.
@@ -80,9 +92,6 @@ def create_administrator(request):
     - If the administrator is created successfully, returns the generated token.
     - If the administrator data is invalid, returns an error response.
     """
-    if getattr(request.user, "role", None) != "super-admin":
-        return Response({"message": "Administrator is not authorized"}, status=403)
-
     serializer = AdministratorSerializer(data=request.data)
     if serializer.is_valid():
         # Salt and hash the password
@@ -99,6 +108,7 @@ def create_administrator(request):
 
 
 @api_view(["POST"])
+@admin_access_required
 def update_administrator(request, administrator_id):
     """
     Update an existing administrator by their administrator ID.
@@ -112,15 +122,6 @@ def update_administrator(request, administrator_id):
     - If the administrator does not exist or the data is invalid, returns an error response.
     """
     try:
-        if getattr(request.user, "user_type", None) != "administrator":
-            return Response({"message": "User is not authorized"}, status=403)
-
-        if (
-            getattr(request.user, "id", None) != administrator_id
-            and getattr(request.user, "role", None) != "super-admin"
-        ):
-            return Response({"message": "Administrator is not authorized"}, status=403)
-
         administrator = Administrator.objects.get(pk=administrator_id)
     except Administrator.DoesNotExist:
         return Response(
@@ -135,6 +136,7 @@ def update_administrator(request, administrator_id):
 
 
 @api_view(["POST"])
+@admin_access_required
 def delete_administrator(request, administrator_id):
     """
     Delete an existing administrator by their administrator ID.
@@ -148,9 +150,6 @@ def delete_administrator(request, administrator_id):
     - If the administrator does not exist, returns an error response.
     """
     try:
-        if getattr(request.user, "role", None) != "super-admin":
-            return Response({"message": "Administrator is not authorized"}, status=403)
-
         administrator = Administrator.objects.get(pk=administrator_id)
     except Administrator.DoesNotExist:
         return Response(

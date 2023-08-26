@@ -13,9 +13,6 @@ def admin_access_required(view_func):
     def _wrapped_view(request, *args, **kwargs):
         user = request.user
 
-        print(user.__dict__)
-        print(getattr(user, "role", None))
-
         if getattr(user, "role", None) in [
             "super-admin",
             "admin",

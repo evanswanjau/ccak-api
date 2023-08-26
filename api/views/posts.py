@@ -1,4 +1,5 @@
 from datetime import datetime
+from functools import wraps
 
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
@@ -6,6 +7,23 @@ from rest_framework import status
 from api.models.post import Post
 from api.models.administrator import Administrator
 from api.serializers.post import PostSerializer
+
+
+def admin_access_required(view_func):
+    @wraps(view_func)
+    def _wrapped_view(request, *args, **kwargs):
+        user = request.user
+
+        if getattr(user, "role", None) in [
+            "super-admin",
+            "admin",
+            "content-admin",
+        ]:
+            return view_func(request, *args, **kwargs)
+        else:
+            return Response({"message": "Administrator is not authorized"}, status=403)
+
+    return _wrapped_view
 
 
 @api_view(["GET"])
@@ -34,25 +52,8 @@ def get_post(request, post_id):
         return Response({"error": "Post not found."}, status=status.HTTP_404_NOT_FOUND)
 
 
-@api_view(["GET"])
-def get_posts(request):
-    """
-    Retrieve all posts.
-
-    Returns:
-    - Serialized data for all posts.
-    """
-    posts = Post.objects.all()
-
-    for post in posts:
-        author = Administrator.objects.get(pk=post.created_by_id)
-        post.author = f"{author.first_name} {author.last_name}"
-
-    serializer = PostSerializer(posts, many=True)
-    return Response(serializer.data)
-
-
 @api_view(["POST"])
+@admin_access_required
 def create_post(request):
     """
     Create a new post.
@@ -66,13 +67,6 @@ def create_post(request):
 
     HTTP Methods: POST
     """
-    if getattr(request.user, "role", None) not in [
-        "super-admin",
-        "content-admin",
-        "admin",
-    ]:
-        return Response({"message": "Administrator is not authorized"}, status=403)
-
     serializer = PostSerializer(data=request.data)
     if serializer.is_valid():
         serializer.validated_data["created_by"] = request.user
@@ -83,6 +77,7 @@ def create_post(request):
 
 
 @api_view(["POST"])
+@admin_access_required
 def update_post(request, post_id):
     """
     Update an existing post by their post ID.
@@ -97,13 +92,6 @@ def update_post(request, post_id):
 
     HTTP Methods: PATCH
     """
-    if getattr(request.user, "role", None) not in [
-        "super-admin",
-        "content-admin",
-        "admin",
-    ]:
-        return Response({"message": "Administrator is not authorized"}, status=403)
-
     try:
         post = Post.objects.get(pk=post_id)
     except Post.DoesNotExist:
@@ -117,6 +105,7 @@ def update_post(request, post_id):
 
 
 @api_view(["POST"])
+@admin_access_required
 def delete_post(request, post_id):
     """
     Delete an existing post by their post ID.
@@ -131,13 +120,6 @@ def delete_post(request, post_id):
 
     HTTP Methods: DELETE
     """
-    if getattr(request.user, "role", None) not in [
-        "super-admin",
-        "content-admin",
-        "admin",
-    ]:
-        return Response({"message": "Administrator is not authorized"}, status=403)
-
     try:
         post = Post.objects.get(pk=post_id)
     except Post.DoesNotExist:

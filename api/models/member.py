@@ -24,7 +24,7 @@ class Member(models.Model):
     location = models.CharField(max_length=300, blank=True)
     postal_address = models.CharField(max_length=300, blank=True)
     website_link = models.CharField(max_length=300, blank=True)
-    logo = models.CharField(max_length=300, blank=True)
+    logo = models.CharField(max_length=300, default="default.png")
     bookmarks = models.JSONField(default=dict)
     likes = models.JSONField(default=dict)
     registration_status = models.CharField(max_length=150, default="unregistered")

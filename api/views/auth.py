@@ -131,14 +131,13 @@ def reset_link(request):
     if user_type == "member":
         user = Member.objects.filter(email=email).first()
 
-    # Generate tokens
-    refresh = RefreshToken.for_user(user)
-    refresh["user_type"] = user_type  # Add custom claim to the payload
-    refresh.access_token.payload[
-        "user_type"
-    ] = "admin"  # Also add to the access token's payload
-
     if user and user.email:
+        # Generate tokens
+        refresh = RefreshToken.for_user(user)
+        refresh["user_type"] = user_type  # Add custom claim to the payload
+        refresh.access_token.payload[
+            "user_type"
+        ] = "admin"  # Also add to the access token's payload
         send_reset_link_email(user, refresh.access_token)
 
     return Response(

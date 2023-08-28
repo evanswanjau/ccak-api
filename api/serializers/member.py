@@ -46,7 +46,6 @@ class MemberSerializer(serializers.ModelSerializer):
         ]
 
     def validate_email(self, email):
-        print(self.instance)
         """
         Validate the email field.
 

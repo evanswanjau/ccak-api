@@ -1,6 +1,7 @@
 import datetime
-from functools import wraps
+from functools import wraps, reduce
 
+from django.db.models import Q
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.decorators import api_view
@@ -44,19 +45,6 @@ def get_invoice(request, invoice_id):
     """
     try:
         invoice = Invoice.objects.get(pk=invoice_id)
-        user = request.user
-
-        # Allow super-admins, admins, and members to view the invoice
-        if getattr(user, "role", None) not in [
-            "super-admin",
-            "admin",
-            "finance-admin",
-        ] or (
-            getattr(user, "user_type", None) == "member"
-            and Invoice.objects.filter(id=invoice_id, member_id=user.id).DoesNotExist()
-        ):
-            return Response({"message": "User is not authorized"}, status=403)
-
         invoice = payment_details(invoice)
 
         serializer = InvoiceSerializer(invoice)
@@ -178,21 +166,19 @@ def payment_details(invoice):
     status = "unpaid"
 
     for item in invoice.items:
-        total_amount += item["quantity"] * item["unit_price"]
-
-    invoice.total_amount = total_amount
+        total_amount += int(item["quantity"]) * int(item["unit_price"])
 
     payments = Payment.objects.filter(invoice_number=invoice.invoice_number)
 
     for payment in payments:
-        paid_amount += payment.amount
+        paid_amount += int(payment.amount)
 
     if paid_amount > total_amount or paid_amount == total_amount:
         status = "paid"
-        # TODO 1. EXECUTE SUBSCRIPTION PROCESS
 
+    invoice.total_amount = total_amount
     invoice.paid_amount = paid_amount
-    invoice.balance = total_amount - paid_amount
+    invoice.balance = int(total_amount) - paid_amount
     invoice.status = status
 
     return invoice
@@ -228,7 +214,7 @@ def search_invoices(request):
         return Response({"message": "Administrator is not authorized"}, status=403)
 
     if getattr(user, "user_type", None) == "member" and (
-        request.data.get("member_id") != str(user.id)
+        request.data.get("member_id") != user.id
     ):
         return Response(
             {"message": "Member is not authorized to view this invoice"}, status=403
@@ -237,9 +223,26 @@ def search_invoices(request):
     query = get_invoices_query(request.data)
 
     offset = get_offset(request.data["page"], request.data["limit"])
-    invoices = Invoice.objects.filter(**query).order_by("-created_at")[
-        offset["start"] : offset["end"]
-    ]
+
+    keyword = request.data.get("keyword")
+    keyword_search = None
+
+    if keyword:
+        keywords = keyword.split()  # Split keyword into individual words
+        keyword_queries = [
+            Q(invoice_number__icontains=k) | Q(customer__icontains=k) for k in keywords
+        ]
+
+        keyword_search = reduce(lambda x, y: x | y, keyword_queries)
+
+    if keyword_search:
+        invoices = Invoice.objects.filter(keyword_search, **query).order_by(
+            "-created_at"
+        )[offset["start"] : offset["end"]]
+    else:
+        invoices = Invoice.objects.filter(**query).order_by("-created_at")[
+            offset["start"] : offset["end"]
+        ]
 
     for invoice in invoices:
         invoice = payment_details(invoice)
@@ -251,9 +254,6 @@ def search_invoices(request):
 
 def get_invoices_query(data):
     query = {}
-
-    if data["invoice_number"]:
-        query["invoice_number__contains"] = data["invoice_number"]
 
     if data["member_id"]:
         query["member_id"] = data["member_id"]

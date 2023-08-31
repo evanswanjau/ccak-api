@@ -7,13 +7,14 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from api.models.kopokopo import Kopokopo
 from api.serializers.kopokopo import KopokopoSerializer
+from api.serializers.payment import PaymentSerializer
 from dotenv import load_dotenv
 
 load_dotenv()
 
-CLIENT_ID = os.getenv('KOPOKOPO_CLIENT_ID')
-CLIENT_SECRET = os.getenv('KOPOKOPO_CLIENT_SECRET')
-BASE_URL = os.getenv('KOPOKOPO_BASE_URL')
+CLIENT_ID = os.getenv("KOPOKOPO_CLIENT_ID")
+CLIENT_SECRET = os.getenv("KOPOKOPO_CLIENT_SECRET")
+BASE_URL = os.getenv("KOPOKOPO_BASE_URL")
 
 # initialize the library
 k2connect.initialize(CLIENT_ID, CLIENT_SECRET, BASE_URL)
@@ -33,7 +34,7 @@ def generate_token():
     return authenticator.request_access_token()
 
 
-@api_view(['POST'])
+@api_view(["POST"])
 def receive_payments(request):
     """
     Process a payment request and initiate a payment using the KopoKopo API.
@@ -48,29 +49,33 @@ def receive_payments(request):
     HTTP Methods: POST
     """
     token = generate_token()
-    access_token = token.get('access_token')
+    access_token = token.get("access_token")
 
     receive_payments_service = k2connect.ReceivePayments
 
     # initiate payment request
-    mpesa_payment_location = receive_payments_service.create_payment_request({
-        "access_token": access_token,
-        "callback_url": os.getenv('BACKEND_URL') + "/kopokopo/payment/process",
-        "first_name": request.data.get("first_name"),
-        "last_name": request.data.get("last_name"),
-        "email": request.data.get("email"),
-        "payment_channel": "MPESA",
-        "phone_number": request.data.get("phone_number"),
-        "till_number": os.getenv('KOPOKOPO_TILL'),
-        "amount": request.data.get("amount"),
-        "metadata": request.data.get("metadata")
-    })
+    mpesa_payment_location = receive_payments_service.create_payment_request(
+        {
+            "access_token": access_token,
+            "callback_url": os.getenv("BACKEND_URL") + "/kopokopo/payment/process",
+            "first_name": request.data.get("first_name"),
+            "last_name": request.data.get("last_name"),
+            "email": request.data.get("email"),
+            "payment_channel": "MPESA",
+            "phone_number": request.data.get("phone_number"),
+            "till_number": os.getenv("KOPOKOPO_TILL"),
+            "amount": request.data.get("amount"),
+            "metadata": request.data.get("metadata"),
+        }
+    )
 
-    payment_request_status = receive_payments_service.payment_request_status(access_token, mpesa_payment_location)
+    payment_request_status = receive_payments_service.payment_request_status(
+        access_token, mpesa_payment_location
+    )
     return Response(payment_request_status)
 
 
-@api_view(['POST'])
+@api_view(["POST"])
 def process_payment(request):
     """
     Process the payment callback received from KopoKopo.
@@ -83,11 +88,10 @@ def process_payment(request):
 
     HTTP Methods: POST
     """
-    print(request.body)
     return JsonResponse({"j-lo": "red"})
 
 
-@api_view(['POST'])
+@api_view(["POST"])
 def query_payment(request):
     """
     Query the status of a payment using the KopoKopo API.
@@ -102,18 +106,21 @@ def query_payment(request):
     HTTP Methods: POST
     """
     token = generate_token()
-    access_token = token.get('access_token')
+    access_token = token.get("access_token")
 
     stk_service = k2connect.ReceivePayments
 
-    url = os.getenv('KOPOKOPO_BASE_URL') + "api/v1/incoming_payments/" + request.data.get('payment_id')
+    url = (
+        os.getenv("KOPOKOPO_BASE_URL")
+        + "api/v1/incoming_payments/"
+        + request.data.get("payment_id")
+    )
 
-    payment_request_status = stk_service.payment_request_status(
-        access_token, url)
+    payment_request_status = stk_service.payment_request_status(access_token, url)
     return Response(payment_request_status)
 
 
-@api_view(['GET'])
+@api_view(["GET"])
 def buygoods_transaction_received_webhook(request):
     """
     Create a webhook subscription for the "buygoods_transaction_received" event.
@@ -128,16 +135,16 @@ def buygoods_transaction_received_webhook(request):
     HTTP Methods: GET
     """
     token = generate_token()
-    access_token = token.get('access_token')
+    access_token = token.get("access_token")
 
     webhook_service = k2connect.Webhooks
 
     request_payload = {
         "access_token": access_token,
-        "event_type": 'buygoods_transaction_received',
-        "webhook_endpoint": os.getenv('BACKEND_URL') + '/kopokopo/callback/buygoods',
-        "scope": 'till',
-        "scope_reference": '112233'
+        "event_type": "buygoods_transaction_received",
+        "webhook_endpoint": os.getenv("BACKEND_URL") + "/kopokopo/callback/buygoods",
+        "scope": "till",
+        "scope_reference": "112233",
     }
 
     customer_created_subscription = webhook_service.create_subscription(request_payload)
@@ -145,7 +152,7 @@ def buygoods_transaction_received_webhook(request):
     return Response({"subscription": customer_created_subscription})
 
 
-@api_view(['POST'])
+@api_view(["POST"])
 def buygoods_transaction_received_callback(request):
     """
     Process the callback received from KopoKopo for the "buygoods_transaction_received" event.
@@ -159,20 +166,24 @@ def buygoods_transaction_received_callback(request):
 
     HTTP Methods: POST
     """
-    request.data['transaction_id'] = request.data['id']
-    request.data['timestamp'] = request.data['created_at']
+    request.data["transaction_id"] = request.data["id"]
+    request.data["timestamp"] = request.data["created_at"]
+
+    print("we are here")
 
     serializer = KopokopoSerializer(data=request.data)
     if serializer.is_valid():
         serializer.save()
 
         save_payment(request.data)
-        return Response({"message": "Payment received successfully"}, status=status.HTTP_201_CREATED)
+        return Response(
+            {"message": "Payment received successfully"}, status=status.HTTP_201_CREATED
+        )
     print(serializer.errors)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-@api_view(['GET'])
+@api_view(["GET"])
 def get_all_kopokopo_payments(request):
     """
     Retrieve all kopokopo payments.
@@ -185,7 +196,7 @@ def get_all_kopokopo_payments(request):
     return Response(serializer.data)
 
 
-@api_view(['GET'])
+@api_view(["GET"])
 def get_single_kopokopo_payment(request, kopokopo_id):
     """
     Retrieve details of a kopokopo by its ID.
@@ -202,27 +213,39 @@ def get_single_kopokopo_payment(request, kopokopo_id):
         serializer = KopokopoSerializer(kopokopo)
         return Response(serializer.data)
     except Kopokopo.DoesNotExist:
-        return Response({"error": "Kopokopo payment not found."}, status=status.HTTP_404_NOT_FOUND)
+        return Response(
+            {"error": "Kopokopo payment not found."}, status=status.HTTP_404_NOT_FOUND
+        )
 
 
 def save_payment(payment):
-    print(payment)
-    payment['transaction_id'] = payment['id']
-    payment['method'] = 'mpesa'
-    payment['timestamp'] = payment['created_at']
-    print(payment)
-    #
-    # serializer = KopokopoSerializer(data=request.data)
-    # if serializer.is_valid():
-    #     serializer.save()
-    #
-    #     save_payment(request.data)
-    #     return Response({"message": "Payment received successfully"}, status=status.HTTP_201_CREATED)
-    # print(serializer.errors)
-    # return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-    # TODO: 1. Get payment details
-    # TODO: 2. Save payment
-    pass
+    payment_body = {
+        "transaction_id": payment["event"]["resource"]["reference"],
+        "method": "mpesa",
+        "invoice_number": "",
+        "timestamp": payment["event"]["resource"]["origination_time"],
+        "amount": payment["event"]["resource"]["amount"],
+        "name": payment["event"]["resource"]["sender_first_name"]
+        + " "
+        + payment["event"]["resource"]["sender_middle_name"]
+        + " "
+        + payment["event"]["resource"]["sender_last_name"],
+        "phone_number": payment["event"]["resource"]["sender_phone_number"],
+    }
+
+    print(payment_body)
+    serializer = PaymentSerializer(data=payment_body)
+    if serializer.is_valid():
+        print("we are ready to save")
+
+        serializer.save()
+
+        return Response(
+            {"message": "Payment received successfully"}, status=status.HTTP_201_CREATED
+        )
+
+    print(serializer.errors)
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 def update_invoice_status():

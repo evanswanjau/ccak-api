@@ -1,4 +1,3 @@
-from datetime import datetime
 from functools import wraps
 
 from rest_framework.decorators import api_view
@@ -166,9 +165,9 @@ def search_posts(request):
 
     category = request.data.get("category")
     if category in ["events"]:
-        data = Post.objects.filter(**query, event_date__gt=datetime.today()).order_by(
-            "event_date"
-        )[offset["start"] : offset["end"]]
+        data = Post.objects.filter(**query).order_by("event_date")[
+            offset["start"] : offset["end"]
+        ]
     else:
         data = Post.objects.filter(**query).order_by("-published")[
             offset["start"] : offset["end"]

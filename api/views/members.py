@@ -1,6 +1,7 @@
 import os
-from functools import wraps
+from functools import wraps, reduce
 
+from django.db.models import Q
 from django.contrib.auth.hashers import make_password
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
@@ -250,9 +251,29 @@ def search_members(request):
     query = get_members_query(request.data)
 
     offset = get_offset(request.data["page"], request.data["limit"])
-    data = Member.objects.filter(**query).order_by("company")[
-        offset["start"] : offset["end"]
-    ]
+
+    keyword = request.data.get("keyword")
+    keyword_search = None
+
+    if keyword:
+        keywords = keyword.split()  # Split keyword into individual words
+        keyword_queries = [
+            Q(first_name__icontains=k)
+            | Q(last_name__icontains=k)
+            | Q(company__icontains=k)
+            for k in keywords
+        ]
+
+        keyword_search = reduce(lambda x, y: x | y, keyword_queries)
+
+    if keyword_search:
+        data = Member.objects.filter(keyword_search, **query).order_by("company")[
+            offset["start"] : offset["end"]
+        ]
+    else:
+        data = Member.objects.filter(**query).order_by("company")[
+            offset["start"] : offset["end"]
+        ]
 
     member_serializer = MemberSerializer(data, many=True)
     return Response(member_serializer.data)
@@ -260,9 +281,6 @@ def search_members(request):
 
 def get_members_query(data):
     query = {}
-
-    if data["keyword"]:
-        query["company__contains"] = data["keyword"]
 
     if data["technology"]:
         query["technology"] = data["technology"]
@@ -272,6 +290,11 @@ def get_members_query(data):
 
     if data["subscription_status"]:
         query["subscription_status"] = data["subscription_status"]
+
+    if data["subscription_category"]:
+        query["subscription_category"] = data["subscription_category"]
+
+    print(query)
 
     return query
 

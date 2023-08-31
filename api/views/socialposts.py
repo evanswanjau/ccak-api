@@ -127,7 +127,9 @@ def update_socialpost(request, socialpost_id):
         if getattr(request.user, "user_type", None) is None:
             return Response({"message": "User is not authorized"}, status=403)
 
-        if getattr(request.user, "role", None) not in [
+        if getattr(request.user, "user_type", None) == "administrator" and getattr(
+            request.user, "role", None
+        ) not in [
             "super-admin",
             "admin",
             "content-admin",
@@ -137,9 +139,10 @@ def update_socialpost(request, socialpost_id):
         socialpost = SocialPost.objects.get(pk=socialpost_id)
 
         # Allow member to edit or delete their own socialpost
-        if getattr(
-            request.user, "user_type", None
-        ) == "member" and socialpost.created_by_id != request.user.get("id"):
+        if (
+            getattr(request.user, "user_type", None) == "member"
+            and socialpost.created_by_id != request.user.id
+        ):
             return Response({"message": "Member is not authorized"}, status=403)
 
     except SocialPost.DoesNotExist:
@@ -173,7 +176,7 @@ def delete_socialpost(request, socialpost_id):
         if getattr(request.user, "user_type", None) is None:
             return Response({"message": "User is not authorized"}, status=403)
 
-        if getattr(request.user, "user_type", None) == "administratorr" and getattr(
+        if getattr(request.user, "user_type", None) == "administrator" and getattr(
             request.user, "role", None
         ) not in [
             "super-admin",

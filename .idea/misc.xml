@@ -3,7 +3,7 @@
   <component name="Black">
     <option name="enabledOnSave" value="true" />
     <option name="pathToExecutable" value="$USER_HOME$/.local/bin/black" />
-    <option name="sdkUUID" value="90ed0adc-6cba-4aeb-9553-ffbab9bb5cb8" />
+    <option name="sdkUUID" value="af75ed07-33a3-40b5-8380-d25f22552eb1" />
   </component>
   <component name="ProjectRootManager" version="2" project-jdk-name="Python 3.10 (ccak-api)" project-jdk-type="Python SDK" />
   <component name="PyCharmProfessionalAdvertiser">

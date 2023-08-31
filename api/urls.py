@@ -24,13 +24,16 @@ from api.views import comments
 from api.views import members
 from api.views import invoices
 from api.views import payments
+from api.views import donations
 from api.views import subscribers
 from api.views import administrators
 from api.views import kopokopo
 from api.views import home
+from api.views import dashboard
 
 from rest_framework_simplejwt.views import TokenObtainPairView
 
+# fmt: off
 urlpatterns = [
     path('', home.home),
     path('admin/', admin.site.urls),
@@ -41,8 +44,8 @@ urlpatterns = [
     path('send/email', emails.send_custom_mail),
     path('auth/member/login', auth.member_login),
     path('auth/administrator/login', auth.administrator_login),
+    path('auth/resetlink', auth.reset_link),
     path('post/<int:post_id>', posts.get_post, name='get-post'),
-    path('posts', posts.get_posts, name='get-posts'),
     path('post', posts.create_post, name='create-post'),
     path('post/update/<int:post_id>', posts.update_post, name='update-post'),
     path('post/delete/<int:post_id>', posts.delete_post, name='delete-post'),
@@ -58,7 +61,6 @@ urlpatterns = [
     path('comment/delete/<int:comment_id>', comments.delete_comment, name='delete-comment'),
     path('comments/socialpost/<int:socialpost_id>', comments.socialpost_comments, name='socialpost-comments'),
     path('member/<int:member_id>', members.get_member, name='get-member'),
-    path('members', members.get_members, name='get-members'),
     path('member', members.create_member, name='create-member'),
     path('member/update/<int:member_id>', members.update_member, name='update-member'),
     path('member/delete/<int:member_id>', members.delete_member, name='delete-member'),
@@ -71,17 +73,21 @@ urlpatterns = [
     path('kopokopo/payments', kopokopo.get_all_kopokopo_payments),
     path('kopokopo/payment/<int:kopokopo_id>', kopokopo.get_single_kopokopo_payment),
     path('invoice/<int:invoice_id>', invoices.get_invoice, name='get-invoice'),
-    path('invoices', invoices.get_invoices, name='get-invoices'),
     path('invoice', invoices.create_invoice, name='create-invoice'),
     path('invoice/update/<int:invoice_id>', invoices.update_invoice, name='update-invoice'),
     path('invoice/delete/<int:invoice_id>', invoices.delete_invoice, name='delete-invoice'),
     path('invoices/search', invoices.search_invoices, name='search-invoices'),
     path('payment/<int:payment_id>', payments.get_payment, name='get-payment'),
-    path('payments', payments.get_payments, name='get-payments'),
     path('payment', payments.create_payment, name='create-payment'),
     path('payment/update/<int:payment_id>', payments.update_payment, name='update-payment'),
     path('payment/delete/<int:payment_id>', payments.delete_payment, name='delete-payment'),
     path('payments/search', payments.search_payments, name='search-payments'),
+    path('payments/mpesa/activate', payments.activate_mpesa_payment, name='activate-mpesa-payment'),
+    path('donation/<int:donation_id>', donations.get_donation, name='get-donation'),
+    path('donation', donations.create_donation, name='create-donation'),
+    path('donation/update/<int:donation_id>', donations.update_donation, name='update-donation'),
+    path('donation/delete/<int:donation_id>', donations.delete_donation, name='delete-donation'),
+    path('donations/search', donations.search_donations, name='search-donations'),
     path('subscribers', subscribers.get_subscribers, name='get-subscribers'),
     path('subscriber', subscribers.create_subscriber, name='create-subscriber'),
     path('subscriber/delete/<int:subscriber_id>', subscribers.delete_subscriber, name='delete-subscriber'),
@@ -90,4 +96,8 @@ urlpatterns = [
     path('administrator/<int:administrator_id>', administrators.get_administrator, name='get-administrator'),
     path('administrator/update/<int:administrator_id>', administrators.update_administrator, name='update-administrator'),
     path('administrator/delete/<int:administrator_id>', administrators.delete_administrator, name='delete-administrator'),
+    path('dashboard/stats/general', dashboard.general_stats, name='get-general-status'),
+    path('dashboard/stats/money', dashboard.money_stats, name='get-money-status'),
+    path('dashboard/stats/member/', dashboard.member_stats, name='get-member-status'),
+
 ]

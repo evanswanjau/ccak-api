@@ -4,6 +4,7 @@ from django.db.models import Q
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.decorators import api_view
+from rest_framework.pagination import PageNumberPagination
 from api.models.payment import Payment
 from api.models.invoice import Invoice
 from api.models.member import Member
@@ -199,8 +200,6 @@ def update_invoice_status(invoice_number):
 def search_payments(request):
     query = get_payments_query(request.data)
 
-    offset = get_offset(request.data["page"], request.data["limit"])
-
     keyword = request.data.get("keyword")
     keyword_search = None
 
@@ -217,16 +216,16 @@ def search_payments(request):
         keyword_search = reduce(lambda x, y: x | y, keyword_queries)
 
     if keyword_search:
-        data = Payment.objects.filter(keyword_search, **query).order_by("-created_at")[
-            offset["start"] : offset["end"]
-        ]
+        data = Payment.objects.filter(keyword_search, **query).order_by("-created_at")
     else:
-        data = Payment.objects.filter(**query).order_by("-created_at")[
-            offset["start"] : offset["end"]
-        ]
+        data = Payment.objects.filter(**query).order_by("-created_at")
 
-    serializer = PaymentSerializer(data, many=True)
-    return Response(serializer.data)
+    paginator = PageNumberPagination()
+    paginator.page_size = request.data["limit"]
+    paginated_posts = paginator.paginate_queryset(data, request)
+    post_serializer = PaymentSerializer(paginated_posts, many=True)
+
+    return paginator.get_paginated_response(post_serializer.data)
 
 
 def get_payments_query(data):
@@ -236,24 +235,6 @@ def get_payments_query(data):
         query["method"] = data["method"]
 
     return query
-
-
-def get_offset(page, limit):
-    """
-    Calculate the pagination range.
-
-    Args:
-        page (int): The current page number.
-        limit (int): The maximum number of items per page.
-
-    Returns:
-        dict: A dictionary containing the start and end offsets for pagination.
-    """
-    end = limit * page
-    start = end - limit
-    start = start + 1 if start != 0 else start
-
-    return {"start": start, "end": end}
 
 
 def subscribe_member(member_id):

@@ -1,8 +1,10 @@
+from datetime import datetime
 from functools import wraps
 
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status
+from rest_framework.pagination import PageNumberPagination
 from api.models.post import Post
 from api.models.administrator import Administrator
 from api.serializers.post import PostSerializer
@@ -161,24 +163,23 @@ def search_posts(request):
         - The response includes the paginated list of post objects.
     """
     query = get_posts_query(request.data)
-    offset = get_offset(request.data["page"], request.data["limit"])
 
     category = request.data.get("category")
     if category in ["events"]:
-        data = Post.objects.filter(**query).order_by("event_date")[
-            offset["start"] : offset["end"]
-        ]
+        data = Post.objects.filter(**query).order_by("event_date")
     else:
-        data = Post.objects.filter(**query).order_by("-published")[
-            offset["start"] : offset["end"]
-        ]
+        data = Post.objects.filter(**query).order_by("-published")
 
     for item in data:
         author = Administrator.objects.get(pk=item.created_by_id)
         item.author = f"{author.first_name} {author.last_name}"
 
-    post_serializer = PostSerializer(data, many=True)
-    return Response(post_serializer.data)
+    paginator = PageNumberPagination()
+    paginator.page_size = request.data["limit"]
+    paginated_posts = paginator.paginate_queryset(data, request)
+    post_serializer = PostSerializer(paginated_posts, many=True)
+
+    return paginator.get_paginated_response(post_serializer.data)
 
 
 def get_posts_query(data):
@@ -202,21 +203,3 @@ def get_posts_query(data):
         query["status"] = data["status"]
 
     return query
-
-
-def get_offset(page, limit):
-    """
-    Calculate the pagination range.
-
-    Args:
-        page (int): The current page number.
-        limit (int): The maximum number of items per page.
-
-    Returns:
-        dict: A dictionary containing the start and end offsets for pagination.
-    """
-    end = limit * page
-    start = end - limit
-    start = start + 1 if start != 0 else start
-
-    return {"start": start, "end": end}

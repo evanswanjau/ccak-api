@@ -6,6 +6,7 @@ from django.contrib.auth.hashers import make_password
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status
+from rest_framework.pagination import PageNumberPagination
 from rest_framework_simplejwt.tokens import RefreshToken
 from api.models.member import Member
 from api.serializers.member import MemberSerializer
@@ -250,8 +251,6 @@ def search_members(request):
     """
     query = get_members_query(request.data)
 
-    offset = get_offset(request.data["page"], request.data["limit"])
-
     keyword = request.data.get("keyword")
     keyword_search = None
 
@@ -267,16 +266,16 @@ def search_members(request):
         keyword_search = reduce(lambda x, y: x | y, keyword_queries)
 
     if keyword_search:
-        data = Member.objects.filter(keyword_search, **query).order_by("company")[
-            offset["start"] : offset["end"]
-        ]
+        data = Member.objects.filter(keyword_search, **query).order_by("subscription_category")
     else:
-        data = Member.objects.filter(**query).order_by("company")[
-            offset["start"] : offset["end"]
-        ]
+        data = Member.objects.filter(**query).order_by("subscription_category")
 
-    member_serializer = MemberSerializer(data, many=True)
-    return Response(member_serializer.data)
+    paginator = PageNumberPagination()
+    paginator.page_size = request.data["limit"]
+    paginated_posts = paginator.paginate_queryset(data, request)
+    post_serializer = MemberSerializer(paginated_posts, many=True)
+
+    return paginator.get_paginated_response(post_serializer.data)
 
 
 def get_members_query(data):
@@ -294,24 +293,4 @@ def get_members_query(data):
     if data["subscription_category"]:
         query["subscription_category"] = data["subscription_category"]
 
-    print(query)
-
     return query
-
-
-def get_offset(page, limit):
-    """
-    Calculate the pagination range.
-
-    Args:
-        page (int): The current page number.
-        limit (int): The maximum number of items per page.
-
-    Returns:
-        dict: A dictionary containing the start and end offsets for pagination.
-    """
-    end = limit * page
-    start = end - limit
-    start = start + 1 if start != 0 else start
-
-    return {"start": start, "end": end}

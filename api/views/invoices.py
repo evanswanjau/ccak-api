@@ -5,6 +5,7 @@ from django.db.models import Q
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.decorators import api_view
+from rest_framework.pagination import PageNumberPagination
 from api.models.invoice import Invoice
 from api.models.payment import Payment
 from api.serializers.invoice import InvoiceSerializer
@@ -201,6 +202,8 @@ def search_invoices(request):
     """
     user = request.user
 
+    print(user)
+
     if getattr(user, "user_type", None) is None:
         return Response({"message": "User is not authorized"}, status=403)
 
@@ -222,8 +225,6 @@ def search_invoices(request):
 
     query = get_invoices_query(request.data)
 
-    offset = get_offset(request.data["page"], request.data["limit"])
-
     keyword = request.data.get("keyword")
     keyword_search = None
 
@@ -238,18 +239,19 @@ def search_invoices(request):
     if keyword_search:
         invoices = Invoice.objects.filter(keyword_search, **query).order_by(
             "-created_at"
-        )[offset["start"] : offset["end"]]
+        )
     else:
-        invoices = Invoice.objects.filter(**query).order_by("-created_at")[
-            offset["start"] : offset["end"]
-        ]
+        invoices = Invoice.objects.filter(**query).order_by("-created_at")
 
     for invoice in invoices:
         invoice = payment_details(invoice)
 
-    serializer = InvoiceSerializer(invoices, many=True)
+    paginator = PageNumberPagination()
+    paginator.page_size = request.data["limit"]
+    paginated_posts = paginator.paginate_queryset(invoices, request)
+    post_serializer = InvoiceSerializer(paginated_posts, many=True)
 
-    return Response(serializer.data)
+    return paginator.get_paginated_response(post_serializer.data)
 
 
 def get_invoices_query(data):
@@ -265,21 +267,3 @@ def get_invoices_query(data):
         query["status"] = data["status"]
 
     return query
-
-
-def get_offset(page, limit):
-    """
-    Calculate the pagination range.
-
-    Args:
-        page (int): The current page number.
-        limit (int): The maximum number of items per page.
-
-    Returns:
-        dict: A dictionary containing the start and end offsets for pagination.
-    """
-    end = limit * page
-    start = end - limit
-    start = start + 1 if start != 0 else start
-
-    return {"start": start, "end": end}

@@ -4,6 +4,7 @@ from django.db.models import Q
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status
+from rest_framework.pagination import PageNumberPagination
 from api.models.donation import Donation
 from api.serializers.donation import DonationSerializer
 
@@ -149,16 +150,16 @@ def search_donations(request):
         keyword_search = reduce(lambda x, y: x | y, keyword_queries)
 
     if keyword_search:
-        data = Donation.objects.filter(keyword_search, **query).order_by("-created_at")[
-            offset["start"] : offset["end"]
-        ]
+        data = Donation.objects.filter(keyword_search, **query).order_by("-created_at")
     else:
-        data = Donation.objects.filter(**query).order_by("-created_at")[
-            offset["start"] : offset["end"]
-        ]
+        data = Donation.objects.filter(**query).order_by("-created_at")
 
-    serializer = DonationSerializer(data, many=True)
-    return Response(serializer.data)
+    paginator = PageNumberPagination()
+    paginator.page_size = request.data["limit"]
+    paginated_posts = paginator.paginate_queryset(data, request)
+    post_serializer = DonationSerializer(paginated_posts, many=True)
+
+    return paginator.get_paginated_response(post_serializer.data)
 
 
 def get_donations_query(data):

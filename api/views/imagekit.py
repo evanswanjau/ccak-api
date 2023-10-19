@@ -6,7 +6,8 @@ from rest_framework.response import Response
 from rest_framework.decorators import api_view
 from imagekitio import ImageKit
 from imagekitio.models.UploadFileRequestOptions import UploadFileRequestOptions
-from imagekitio.models.ListAndSearchFileRequestOptions import ListAndSearchFileRequestOptions
+
+from api.models.post import Post
 from api.serializers.imagekit import ImagekitSerializer
 from dotenv import load_dotenv
 
@@ -80,7 +81,15 @@ def delete_file(request):
         response = imagekit.delete_file(file_id=request.data.get("file_id"))
 
         if response.response_metadata.http_status_code == 204:
-            return Response({'message': 'Image deleted successfully'})
+            post = Post.objects.get(pk=request.data.get("post_id"))
+            files = post.files["data"]
+            count = 0
+            for file in files:
+                if file["file_id"] == request.data.get("file_id"):
+                    del files[count]
+                count += 1
+            post.files["data"] = files
+            return Response(post.files)
         else:
             return Response({'error': 'Failed to delete image'})
     except Exception as e:

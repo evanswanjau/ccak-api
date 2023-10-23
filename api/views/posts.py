@@ -8,6 +8,9 @@ from rest_framework.pagination import PageNumberPagination
 from api.models.post import Post
 from api.models.administrator import Administrator
 from api.serializers.post import PostSerializer
+from django.db.models import Case, When, Value
+from django.db.models import IntegerField
+from django.utils import timezone
 
 
 def admin_access_required(view_func):
@@ -166,7 +169,12 @@ def search_posts(request):
 
     category = request.data.get("category")
     if category in ["events"]:
-        data = Post.objects.filter(**query).order_by("event_date")
+         data = Post.objects.filter(**query).annotate(
+             past_due=Case(
+                 When(event_date__lt=timezone.now(), then=Value(1)),
+                 default=Value(0),
+                 output_field=IntegerField(),
+                 )).order_by('past_due', 'event_date')
     else:
         data = Post.objects.filter(**query).order_by("-published")
 

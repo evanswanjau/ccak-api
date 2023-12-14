@@ -10,12 +10,21 @@ class PostSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Post
+        fields = '__all__'
+
+
+class AllPostsSerializer(serializers.ModelSerializer):
+    """
+    Serializer class for the Post model.
+    Provides serialization/deserialization of Post objects with hidden content.
+    """
+    class Meta:
+        model = Post
         fields = [
             "id",
             "title",
             "excerpt",
             "tags",
-            "content",
             "published",
             "category",
             "image",
@@ -24,7 +33,6 @@ class PostSerializer(serializers.ModelSerializer):
             "venue",
             "venue_link",
             "attendees",
-            "files",
             "folder",
             "access",
             "views",

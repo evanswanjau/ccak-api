@@ -8,6 +8,7 @@ from rest_framework.pagination import PageNumberPagination
 from api.models.post import Post
 from api.models.administrator import Administrator
 from api.serializers.post import PostSerializer
+from api.serializers.post import AllPostsSerializer
 from django.db.models import Case, When, Value
 from django.db.models import IntegerField
 from django.utils import timezone
@@ -185,7 +186,7 @@ def search_posts(request):
     paginator = PageNumberPagination()
     paginator.page_size = request.data["limit"]
     paginated_posts = paginator.paginate_queryset(data, request)
-    post_serializer = PostSerializer(paginated_posts, many=True)
+    post_serializer = AllPostsSerializer(paginated_posts, many=True)
 
     return paginator.get_paginated_response(post_serializer.data)
 

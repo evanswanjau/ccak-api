@@ -174,7 +174,7 @@ def search_posts(request):
                  When(event_date__lt=timezone.now(), then=Value(1)),
                  default=Value(0),
                  output_field=IntegerField(),
-                 )).order_by('past_due', 'event_date')
+                 )).order_by('past_due', '-event_date')
     else:
         data = Post.objects.filter(**query).order_by("-published")
 

@@ -1,7 +1,11 @@
 from functools import wraps
+
+from django.db.models import Q
+from functools import reduce
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status
+from rest_framework.pagination import PageNumberPagination
 from api.models.socialpost import SocialPost
 from api.models.member import Member
 from api.serializers.socialpost import SocialPostSerializer
@@ -57,26 +61,6 @@ def get_socialpost(request, socialpost_id):
         return Response(serializer.data)
     except SocialPost.DoesNotExist:
         return Response({"error": "Post not found."}, status=status.HTTP_404_NOT_FOUND)
-
-
-@api_view(["GET"])
-def get_socialposts(request):
-    """
-    Retrieve all socialposts.
-
-    Returns:
-    - Serialized data for all socialposts.
-    """
-    socialposts = SocialPost.objects.filter(status="active").order_by("-created_at")
-
-    for socialpost in socialposts:
-        member = Member.objects.get(pk=socialpost.created_by_id)
-        socialpost.author = f"{member.first_name} {member.last_name}"
-        socialpost.company = member.company
-        socialpost.logo = member.logo
-
-    serializer = SocialPostSerializer(socialposts, many=True)
-    return Response(serializer.data)
 
 
 @api_view(["POST"])
@@ -223,3 +207,47 @@ def member_socialposts(request, member_id):
 
     serializer = SocialPostSerializer(socialposts, many=True)
     return Response(serializer.data)
+
+
+@api_view(["POST"])
+def search_posts(request):
+    """
+    Search posts based on specified criteria.
+    """
+    query = get_socialposts_query(request.data)
+
+    keyword = request.data.get("keyword")
+    keyword_search = None
+
+    if keyword:
+        keywords = keyword.split()
+        keyword_queries = [
+            Q(post__icontains=k)
+            for k in keywords
+        ]
+
+        keyword_search = reduce(lambda x, y: x | y, keyword_queries)
+
+    if keyword_search:
+        data = SocialPost.objects.filter(keyword_search, **query).order_by("-created_at")
+    else:
+        data = SocialPost.objects.filter(**query).order_by("-created_at")
+
+    paginator = PageNumberPagination()
+    paginator.page_size = request.data["limit"]
+    paginated_posts = paginator.paginate_queryset(data, request)
+    post_serializer = SocialPostSerializer(paginated_posts, many=True)
+
+    return paginator.get_paginated_response(post_serializer.data)
+
+
+def get_socialposts_query(data):
+    query = {}
+
+    if data["keyword"]:
+        query["post__contains"] = data["keyword"]
+
+    if data["status"]:
+        query["status"] = data["status"]
+
+    return query

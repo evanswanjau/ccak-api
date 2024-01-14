@@ -12,7 +12,7 @@ class SocialPost(models.Model):
     post = models.CharField(max_length=500)
     image = models.CharField(max_length=300, blank=True)
     likes = models.IntegerField(default=0)
-    status = models.CharField(max_length=150, default="active")
+    status = models.CharField(max_length=150, default="inactive")
     company = models.CharField(max_length=150, blank=True)
     author = models.CharField(max_length=150, blank=True)
     logo = models.CharField(max_length=150, blank=True)

@@ -2,7 +2,7 @@ import os
 from functools import wraps, reduce
 
 from django.db.models import Q
-from django.contrib.auth.hashers import make_password
+from django.contrib.auth.hashers import make_password, check_password
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status
@@ -157,6 +157,40 @@ def delete_member(request, member_id):
 
     member.delete()
     return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+@api_view(["POST"])
+def change_password(request, member_id):
+    """
+    Change the password of the currently authenticated member.
+
+    Parameters:
+    - request: The HTTP request object.
+
+    Request Body Parameters:
+    - current_password (str): The member's current password.
+    - new_password (str): The new password to set.
+
+    Returns:
+    - If the password change is successful, returns a success response.
+    - If the current password is incorrect or the data is invalid, returns an error response.
+
+    HTTP Methods: POST
+    """
+    member = Member.objects.get(pk=member_id)
+
+    current_password = request.data.get("current_password")
+    new_password = request.data.get("new_password")
+
+    # Check if the current password is correct
+    if not check_password(current_password, member.password):
+        return Response({"error": "Current password is incorrect."}, status=status.HTTP_400_BAD_REQUEST)
+
+    # Update the member's password
+    member.password = make_password(new_password)
+    member.save()
+
+    return Response({"message": "Password successfully changed."}, status=status.HTTP_200_OK)
 
 
 def generate_token(user):

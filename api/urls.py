@@ -65,6 +65,7 @@ urlpatterns = [
     path('member/update/<int:member_id>', members.update_member, name='update-member'),
     path('member/delete/<int:member_id>', members.delete_member, name='delete-member'),
     path('members/search', members.search_members, name='search-member'),
+    path('member/<int:member_id>/change-password', members.change_password, name='change-password'),
     path('kopokopo/payment/receive', kopokopo.receive_payments),
     path('kopokopo/payment/process', kopokopo.process_payment),
     path('kopokopo/payment/query', kopokopo.query_payment),

@@ -30,6 +30,7 @@ from api.views import administrators
 from api.views import kopokopo
 from api.views import home
 from api.views import dashboard
+from api.views import content
 
 from rest_framework_simplejwt.views import TokenObtainPairView
 
@@ -100,5 +101,8 @@ urlpatterns = [
     path('dashboard/stats/general', dashboard.general_stats, name='get-general-status'),
     path('dashboard/stats/money', dashboard.money_stats, name='get-money-status'),
     path('dashboard/stats/member/', dashboard.member_stats, name='get-member-status'),
-
+    path('content', content.create_content, name='create-content'),
+    path('content/update/<int:content_id>', content.update_content, name='update-content'),
+    path('content/delete/<int:content_id>', content.delete_content, name='delete-content'),
+    path('content/search', content.search_content, name='search-content'),
 ]

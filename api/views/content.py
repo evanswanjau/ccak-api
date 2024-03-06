@@ -96,7 +96,7 @@ def search_content(request):
     if request.data.get('section'):
         query["section"] = request.data.get('section')
 
-    contents = Content.objects.filter(**query).order_by("-section")
+    contents = Content.objects.filter(**query).order_by("section")
 
     serializer = ContentSerializer(contents, many=True)
     return Response(serializer.data)

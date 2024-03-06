@@ -1,4 +1,6 @@
 from functools import wraps, reduce
+from dotenv import load_dotenv
+import os
 
 from django.db.models import Q
 from rest_framework.response import Response
@@ -13,6 +15,7 @@ from api.serializers.payment import PaymentSerializer
 from api.serializers.invoice import InvoiceSerializer
 from api.utils.email import send_email
 
+load_dotenv()
 
 def admin_access_required(view_func):
     @wraps(view_func)
@@ -301,7 +304,7 @@ def invoice_completion_successful(invoice):
         "invoice": invoice,
     }
     return send_email(
-        "evanswanjau@gmail.com",
+        os.getenv("EMAIL_RECIPIENT"),
         subject,
         context,
         "paid_invoice.html",

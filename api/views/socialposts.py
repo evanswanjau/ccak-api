@@ -233,6 +233,12 @@ def search_posts(request):
     else:
         data = SocialPost.objects.filter(**query).order_by("-created_at")
 
+    for item in data:
+        member = Member.objects.get(pk=item.created_by_id)
+        item.author = f"{member.first_name} {member.last_name}"
+        item.company = member.company
+        item.logo = member.logo
+
     paginator = PageNumberPagination()
     paginator.page_size = request.data["limit"]
     paginated_posts = paginator.paginate_queryset(data, request)

@@ -75,6 +75,12 @@ def administrator_login(request):
     if email and password:
         administrator = Administrator.objects.filter(email=email).first()
 
+        if administrator is None:
+            return Response(
+                {"error": "Invalid email or password."},
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
+
         if administrator.status == "inactive":
             return Response(
                 {"error": "Administrator has been deactivated"},

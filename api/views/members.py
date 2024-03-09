@@ -160,6 +160,7 @@ def delete_member(request, member_id):
 
 
 @api_view(["POST"])
+@admin_access_required
 def change_password(request, member_id):
     """
     Change the password of the currently authenticated member.
@@ -181,9 +182,10 @@ def change_password(request, member_id):
 
     current_password = request.data.get("current_password")
     new_password = request.data.get("new_password")
+    reset = request.data.get("reset", False)
 
-    # Check if the current password is correct
-    if not check_password(current_password, member.password):
+    # Check if the current password is correct only if reset is False
+    if not reset and not check_password(current_password, member.password):
         return Response({"error": "Current password is incorrect."}, status=status.HTTP_400_BAD_REQUEST)
 
     # Update the member's password

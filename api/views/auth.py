@@ -30,7 +30,13 @@ def member_login(request):
     if email and password:
         member = Member.objects.filter(email=email).first()
 
-        if member and check_password(password, member.password):
+        if member is None:
+            return Response(
+                {"error": "No account found with this email."},
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
+
+        if check_password(password, member.password):
             # Generate tokens
             refresh = RefreshToken.for_user(member)
             refresh["user_type"] = "member"

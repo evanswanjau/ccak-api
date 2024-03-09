@@ -17,6 +17,7 @@ class MemberSerializer(serializers.ModelSerializer):
             "id",
             "first_name",
             "last_name",
+            "membership_no",
             "email",
             "phone_number",
             "company",

@@ -12,6 +12,7 @@ class Member(models.Model):
 
     first_name = models.CharField(max_length=300)
     last_name = models.CharField(max_length=300)
+    membership_no = models.CharField(max_length=300, null=True, default=None)
     email = models.EmailField()
     phone_number = models.CharField(max_length=300)
     company = models.CharField(max_length=300, blank=True)

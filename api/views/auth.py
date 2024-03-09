@@ -75,6 +75,12 @@ def administrator_login(request):
     if email and password:
         administrator = Administrator.objects.filter(email=email).first()
 
+        if administrator is None:
+            return Response(
+                {"error": "Invalid email or password."},
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
+
         if administrator.status == "inactive":
             return Response(
                 {"error": "Administrator has been deactivated"},
@@ -138,7 +144,7 @@ def reset_link(request):
         refresh.access_token.payload[
             "user_type"
         ] = "admin"  # Also add to the access token's payload
-        send_reset_link_email(user, refresh.access_token)
+        send_reset_link_email(user, refresh.access_token, user_type)
 
     return Response(
         {"success": "Your email has been sent successfully"},
@@ -146,11 +152,12 @@ def reset_link(request):
     )
 
 
-def send_reset_link_email(user, token):
+def send_reset_link_email(user, token, user_type):
     """
     Sends a password reset link email to the user.
 
     Args:
+        user_type: User type either member or administrator
         token: A secure token
         user (Member): The user object.
 
@@ -161,6 +168,6 @@ def send_reset_link_email(user, token):
     context = {
         "recipient_name": user.first_name,
         "token": token,
-        "url": os.getenv("FRONTEND_URL"),
+        "url": os.getenv("FRONTEND_URL") + "/membership" if user_type == "member" else os.getenv("PORTAL_URL"),
     }
     return send_email(user.email, subject, context, "reset_link_email.html")

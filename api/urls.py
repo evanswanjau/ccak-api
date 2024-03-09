@@ -98,6 +98,7 @@ urlpatterns = [
     path('administrator/<int:administrator_id>', administrators.get_administrator, name='get-administrator'),
     path('administrator/update/<int:administrator_id>', administrators.update_administrator, name='update-administrator'),
     path('administrator/delete/<int:administrator_id>', administrators.delete_administrator, name='delete-administrator'),
+    path('administrator/<int:administrator_id>/change-password', administrators.change_password, name='change-password'),
     path('dashboard/stats/general', dashboard.general_stats, name='get-general-status'),
     path('dashboard/stats/money', dashboard.money_stats, name='get-money-status'),
     path('dashboard/stats/member/', dashboard.member_stats, name='get-member-status'),

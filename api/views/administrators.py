@@ -14,7 +14,6 @@ load_dotenv()
 
 
 def admin_access_required(view_func):
-    print('called')
     @wraps(view_func)
     def _wrapped_view(request, *args, **kwargs):
         user = request.user

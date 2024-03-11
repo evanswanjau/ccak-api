@@ -169,15 +169,18 @@ def search_posts(request):
     query = get_posts_query(request.data)
 
     category = request.data.get("category")
-    if category in ["events"]:
-         data = Post.objects.filter(**query).annotate(
-             past_due=Case(
-                 When(event_date__lt=timezone.now(), then=Value(1)),
-                 default=Value(0),
-                 output_field=IntegerField(),
-                 )).order_by('past_due', '-event_date')
+    if category == "":
+        data = Post.objects.all().order_by("-published")
     else:
-        data = Post.objects.filter(**query).order_by("-published")
+        if category in ["events"]:
+             data = Post.objects.filter(**query).annotate(
+                 past_due=Case(
+                     When(event_date__lt=timezone.now(), then=Value(1)),
+                     default=Value(0),
+                     output_field=IntegerField(),
+                     )).order_by('past_due', '-event_date')
+        else:
+            data = Post.objects.filter(**query).order_by("-published")
 
     for item in data:
         author = Administrator.objects.get(pk=item.created_by_id)

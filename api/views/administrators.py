@@ -14,6 +14,7 @@ load_dotenv()
 
 
 def admin_access_required(view_func):
+    print('called')
     @wraps(view_func)
     def _wrapped_view(request, *args, **kwargs):
         user = request.user
@@ -190,7 +191,7 @@ def change_password(request, administrator_id):
     administrator.password = make_password(new_password)
     administrator.save()
 
-    return Response({"message": "Password successfully changed."}, status=status.HTTP_200_OK)
+    return Response({"message": "Password changed successfully."}, status=status.HTTP_200_OK)
 
 
 def send_welcome_email(administrator, password):
